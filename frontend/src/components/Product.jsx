@@ -4,7 +4,7 @@ import React, { useContext, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext';
 import { assets } from '../assets/assets';
-import RelatedProducts from '../components/RelatedProducts';
+import RelatedProducts from './RelatedProducts';
 import { FaShare, FaFacebook, FaTwitter, FaPinterest, FaCheckCircle, FaHeart } from 'react-icons/fa';
 
 const Product = () => {

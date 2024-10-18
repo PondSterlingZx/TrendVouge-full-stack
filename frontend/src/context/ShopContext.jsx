@@ -14,7 +14,9 @@ const ShopContextProvider = (props) => {
     const [cartItems, setCartItems] = useState({});
     const [products, setProducts] = useState([]);
     const [token, setToken] = useState('')
+    const [wishlistItems, setWishlistItems] = useState([]);
     const navigate = useNavigate();
+
 
     const fetchProducts = async () => {
         try {
@@ -125,6 +127,24 @@ const ShopContextProvider = (props) => {
         }
     }
 
+     const addToWishlist = async (itemId) => {
+        try {
+            if (token) {
+                const response = await axios.post(backendUrl + '/api/wishlist/add', { itemId }, { headers: { token } });
+                if (response.data.success) {
+                    setWishlistItems([...wishlistItems, itemId]);
+                    toast.success('Added to wishlist');
+                }
+            } else {
+                setWishlistItems([...wishlistItems, itemId]);
+                toast.success('Added to wishlist');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to add to wishlist');
+        }
+    }
+
     const removeFromWishlist = async (itemId) => {
         try {
             if (token) {
@@ -166,9 +186,11 @@ const ShopContextProvider = (props) => {
         if (!token && localStorage.getItem('token')) {
             setToken(localStorage.getItem('token'))
             getUserCart(localStorage.getItem('token'))
+            getWishlist()
         }
         if (token) {
             getUserCart(token)
+            getWishlist()
         }
     }, [token])
 
@@ -193,7 +215,7 @@ const ShopContextProvider = (props) => {
         wishlistItems,
         addToWishlist,
         removeFromWishlist,
-        fetchProducts // Added this to make it available in the context
+        fetchProducts
     }
 
     return (

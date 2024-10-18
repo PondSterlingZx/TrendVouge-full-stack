@@ -11,4 +11,5 @@ productRouter.post('/single', singleProduct);
 productRouter.get('/list', listProducts);
 productRouter.put('/update/:id', adminAuth, updateProduct);
 
+
 export default productRouter

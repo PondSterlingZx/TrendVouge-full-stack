@@ -16,7 +16,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Verify from './pages/Verify'
 import Men from './pages/Men'
 import Customize from './pages/Customize'
-import WishlistPage from './pages/WishListPage'
+
 
 const App = () => {
   return (
@@ -36,7 +36,7 @@ const App = () => {
         <Route path='/place-order' element={<PlaceOrder />} />
         <Route path='/orders' element={<Orders />} />
         <Route path='/verify' element={<Verify />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
+        
       </Routes>
       <Footer />
     </div>

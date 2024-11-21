@@ -1,5 +1,3 @@
-
-
 import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/productModel.js"
 
@@ -7,7 +5,7 @@ import productModel from "../models/productModel.js"
 const addProduct = async (req, res) => {
     try {
 
-        const { name, description, price, category, subCategory, sizes, bestseller } = req.body
+        const { name, description, price, category, subCategory, sizes, bestseller, customize } = req.body
 
         const image1 = req.files.image1 && req.files.image1[0]
         const image2 = req.files.image2 && req.files.image2[0]
@@ -32,6 +30,7 @@ const addProduct = async (req, res) => {
             bestseller: bestseller === "true" ? true : false,
             sizes: JSON.parse(sizes),
             image: imagesUrl,
+            customize: customize === "true" ? true : false,
             date: Date.now()
         }
 
@@ -51,9 +50,9 @@ const addProduct = async (req, res) => {
 // function for list product
 const listProducts = async (req, res) => {
     try {
-        
+
         const products = await productModel.find({});
-        res.json({success:true,products})
+        res.json({ success: true, products })
 
     } catch (error) {
         console.log(error)
@@ -64,9 +63,9 @@ const listProducts = async (req, res) => {
 // function for removing product
 const removeProduct = async (req, res) => {
     try {
-        
+
         await productModel.findByIdAndDelete(req.body.id)
-        res.json({success:true,message:"Product Removed"})
+        res.json({ success: true, message: "Product Removed" })
 
     } catch (error) {
         console.log(error)
@@ -77,10 +76,10 @@ const removeProduct = async (req, res) => {
 // function for single product info
 const singleProduct = async (req, res) => {
     try {
-        
+
         const { productId } = req.body
         const product = await productModel.findById(productId)
-        res.json({success:true,product})
+        res.json({ success: true, product })
 
     } catch (error) {
         console.log(error)
@@ -88,27 +87,4 @@ const singleProduct = async (req, res) => {
     }
 }
 
-const updateProduct = async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { name, description, price, category, subCategory, sizes, bestseller } = req.body;
-  
-      const updatedProduct = await productModel.findByIdAndUpdate(
-        id,
-        { name, description, price, category, subCategory, sizes, bestseller },
-        { new: true }
-      );
-  
-      if (!updatedProduct) {
-        return res.status(404).json({ success: false, message: "Product not found" });
-      }
-  
-      res.json({ success: true, message: "Product Updated Successfully", product: updatedProduct });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ success: false, message: error.message });
-    }
-}
-  
-
-export { listProducts, addProduct, removeProduct, singleProduct, updateProduct }
+export { listProducts, addProduct, removeProduct, singleProduct }

@@ -48,7 +48,7 @@ const Navbar = () => {
 
       <div className='flex items-center gap-6'>
             <img onClick={()=> { setShowSearch(true); navigate('/collection') }} src={assets.search_icon} className='w-5 cursor-pointer' alt="" />
-            <img onClick={()=> { setShowSearch(true); navigate('/wishlist') }} src={assets.wish_list} className='w-5 cursor-pointer' alt="" />
+            <img onClick={()=> { setShowSearch(true); navigate('---') }} src={assets.wish_list} className='w-5 cursor-pointer' alt="" />
             
             <div className='group relative'>
                 <img onClick={()=> token ? null : navigate('/login') } className='w-5 cursor-pointer' src={assets.profile_icon} alt="" />

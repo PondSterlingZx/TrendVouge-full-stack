@@ -82,18 +82,21 @@ const Product = () => {
   };
 
   const handleWishlist = async () => {
+    if (!token) {
+      toast.warning("Please sign in to use wishlist");
+      navigate("/login");
+      return;
+    }
+  
     try {
-      // Check if the product is already in the wishlist
       if (wishlistItems.includes(productId)) {
-        // If the product is already in the wishlist, remove it
-        await removeFromWishlist(productId); // Remove the product from the wishlist
+        await removeFromWishlist(productId);
       } else {
-        await addToWishlist(productId); // Add the product to the wishlist
+        await addToWishlist(productId);
       }
     } catch (error) {
-      // If an error occurs while adding/removing the product from the wishlist, show an error message
-      console.error("Error updating wishlist:", error); // Log the error to the console
-      toast.error("Unable to update wishlist. Please try again later."); // Show error message
+      console.error("Error updating wishlist:", error);
+      toast.error("Unable to update wishlist. Please try again.");
     }
   };
 
@@ -125,11 +128,17 @@ const Product = () => {
   };
 
   useEffect(() => {
-    fetchProductData();
-    fetchProductReviews();
-    fetchUserId();
-    getWishlist();
-  }, [productId, products, token]);
+    const initialize = async () => {
+      await fetchProductData();
+      await fetchProductReviews();
+      await fetchUserId();
+      if (token) {
+        await getWishlist();
+      }
+    };
+    
+    initialize();
+  }, [productId, products, token]); 
 
   useEffect(() => {
     fetchProductReviews();

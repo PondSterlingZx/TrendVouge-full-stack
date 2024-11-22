@@ -9,6 +9,7 @@ import cartRouter from './routes/cartRoute.js'
 import orderRouter from './routes/orderRoute.js'
 import sizeRecommendationRouter from './routes/sizeRecommendationRoute.js';
 import reviewRouter from "./routes/reviewRoute.js";
+import wishlistRouter from './routes/wishlistRoute.js'
 
 // App Config
 const app = express()
@@ -27,6 +28,7 @@ app.use('/api/cart',cartRouter)
 app.use('/api/order',orderRouter)
 app.use('/api/size-recommendation', sizeRecommendationRouter)
 app.use("/api/review", reviewRouter);
+app.use('/api/wishlist', wishlistRouter);
 
 
 app.get('/',(req,res)=>{

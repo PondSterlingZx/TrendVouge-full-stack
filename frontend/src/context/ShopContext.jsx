@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+
 export const ShopContext = createContext();
 
 const ShopContextProvider = (props) => {
@@ -17,7 +18,7 @@ const ShopContextProvider = (props) => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const navigate = useNavigate();
 
-  const addToCart = async (itemId, size) => {
+  const addToCart = async (itemId, size, suppressToast = false) => {
     if (!size) {
       toast.error("Select Product Size");
       return;
@@ -44,13 +45,15 @@ const ShopContextProvider = (props) => {
           { itemId, size },
           { headers: { token } }
         );
-        toast.success("Added to your Cart")
+        if (!suppressToast) {
+          toast.success("Added 1 product to your Cart");
+        }
       } catch (error) {
         console.log(error);
         toast.error(error.message);
       }
     }
-  };
+};
 
   const getCartCount = () => {
     let totalCount = 0;
@@ -134,74 +137,114 @@ const ShopContextProvider = (props) => {
 
   const addToWishlist = async (productId) => {
     try {
-      if (token) {
-        const response = await axios.post(
-          `${backendUrl}/api/wishlist/add`,
-          { productId },
-          { headers: { token } } // Use token in the header
-        );
-        if (response.data.success) {
-          setWishlistItems((prev) => [...prev, productId]); // Update state efficiently
-          toast.success("Added to wishlist");
-        } else {
-          toast.error(response.data.message || "Failed to add to wishlist");
-        }
-      } else {
+      if (!token) {
         toast.error("User not authenticated");
+        return;
+      }
+  
+      // Get userId first
+      const userResponse = await axios.post(
+        `${backendUrl}/api/user/getId`,
+        {},
+        { headers: { token } }
+      );
+      const userId = userResponse.data.userId;
+  
+      const response = await axios.post(
+        `${backendUrl}/api/wishlist/add`,
+        { productId, userId },
+        { headers: { token } }
+      );
+  
+      if (response.data.success) {
+        setWishlistItems((prev) => [...prev, productId]);
+        toast.success("Added to wishlist");
       }
     } catch (error) {
       console.error(error);
       toast.error("An error occurred while adding to wishlist");
     }
   };
-
+  
   const removeFromWishlist = async (productId) => {
     try {
-      if (token) {
-        const response = await axios.post(
-          `${backendUrl}/api/wishlist/remove`,
-          { productId },
-          { headers: { token } } // Use token in the header
-        );
-        if (response.data.success) {
-          setWishlistItems((prev) => prev.filter((id) => id !== productId)); // Efficient state update
-          toast.success("Removed from wishlist");
-        } else {
-          toast.error(
-            response.data.message || "Failed to remove from wishlist"
-          );
-        }
-      } else {
+      if (!token) {
         toast.error("User not authenticated");
+        return;
+      }
+  
+      // Get userId first
+      const userResponse = await axios.post(
+        `${backendUrl}/api/user/getId`,
+        {},
+        { headers: { token } }
+      );
+      const userId = userResponse.data.userId;
+  
+      const response = await axios.post(
+        `${backendUrl}/api/wishlist/remove`,
+        { productId, userId },
+        { headers: { token } }
+      );
+  
+      if (response.data.success) {
+        setWishlistItems((prev) => prev.filter((id) => id !== productId));
+        toast.success("Removed from wishlist");
       }
     } catch (error) {
       console.error(error);
       toast.error("An error occurred while removing from wishlist");
     }
   };
-
-  const getWishlist = async (userId, token) => {
+  
+  const getWishlist = async () => {
     try {
-      if (token) {
-        const response = await axios.get(
-          `${backendUrl}/api/wishlist/${userId}`,
-          { headers: { token } } // Use token in the header
-        );
-        if (response.data.success) {
-          const wishlist = response.data.wishlist || []; // Default to empty array if no wishlist
-          setWishlistItems(wishlist); // Update state with the fetched wishlist
-          toast.success(
-            wishlist.length > 0
-              ? "Wishlist fetched successfully"
-              : "Your wishlist is empty"
-          );
-        } else {
-          toast.error(response.data.message || "Failed to fetch wishlist");
-        }
+      if (!token) return;
+  
+      // Get user ID
+      const userResponse = await axios.post(
+        `${backendUrl}/api/user/getId`,
+        {},
+        { headers: { token } }
+      );
+      
+      const userId = userResponse.data.userId;
+      console.log("Got userId:", userId);
+  
+      // Make sure the URL is properly formatted
+      const wishlistResponse = await axios.get(
+        `${backendUrl}/api/wishlist/${userId}`,
+        { headers: { token } }
+      );
+  
+      console.log("Wishlist response:", wishlistResponse.data);
+  
+      if (wishlistResponse.data.success) {
+        setWishlistItems(wishlistResponse.data.wishlist || []);
       }
     } catch (error) {
-      console.error(error);
-      toast.error("An error occurred while fetching the wishlist");
+      if (error.response?.status === 404) {
+        // If wishlist not found, set empty array instead of showing error
+        setWishlistItems([]);
+      } else {
+        console.error("Error fetching wishlist:", error);
+        toast.error("An error occurred while fetching the wishlist");
+      }
+    }
+  };
+  
+  // Add this helper function to get userId
+  const getUserId = async () => {
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/user/getId`,
+        {},
+        { headers: { token } }
+      );
+      return response.data.userId;
+    } catch (error) {
+      console.error("Error getting user ID:", error);
+      throw error;
     }
   };
 
@@ -247,6 +290,7 @@ const ShopContextProvider = (props) => {
     addToWishlist,
     removeFromWishlist,
     getWishlist,
+    getUserId,
   };
 
   return (

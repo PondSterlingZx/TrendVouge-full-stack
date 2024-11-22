@@ -76,33 +76,56 @@ const SizeQuizModal = ({ productData, onClose, onSizeSelected }) => {
     setLoading(true);
     let bestMatch = null;
     let bestScore = -Infinity;
-
-    for (const [size, ranges] of Object.entries(SIZE_RANGES)) {
+  
+    // Sort sizes from smallest to largest
+    const sizeOrder = ["XS", "S", "M", "L", "XL"];
+    
+    for (const size of sizeOrder) {
+      const ranges = SIZE_RANGES[size];
       let score = 0;
       let totalMeasurements = 0;
-
+  
       for (const [measure, range] of Object.entries(ranges)) {
         if (bodyMeasurements[measure]) {
           const value = bodyMeasurements[measure];
+          const midPoint = (range.min + range.max) / 2;
           
+          // Calculate base score
           if (value >= range.min && value <= range.max) {
             score += 1;
           } else {
-            const midPoint = (range.min + range.max) / 2;
             const rangeSize = range.max - range.min;
             const distance = Math.abs(value - midPoint) / rangeSize;
             score += Math.max(0, 1 - distance);
           }
+  
+          // Add size progression penalty for values exceeding ranges
+          if (value > range.max) {
+            // If current size is not XL and measurement exceeds range
+            if (size !== "XL") {
+              score -= 0.5; // Penalize this size more
+            }
+          } else if (value < range.min) {
+            // If current size is not XS and measurement is below range
+            if (size !== "XS") {
+              score -= 0.5; // Penalize this size more
+            }
+          }
+          
           totalMeasurements++;
         }
       }
-
+  
       const averageScore = score / totalMeasurements;
       let adjustedScore = averageScore;
-
-      if (fitPreference.general === "tight" && size !== "XS") adjustedScore -= 0.1;
-      if (fitPreference.general === "loose" && size !== "XL") adjustedScore -= 0.1;
-
+  
+      // Adjust score based on fit preference
+      if (fitPreference.general === "tight") {
+        adjustedScore += sizeOrder.indexOf(size) * -0.1; // Favor smaller sizes
+      } else if (fitPreference.general === "loose") {
+        adjustedScore += (sizeOrder.length - 1 - sizeOrder.indexOf(size)) * -0.1; // Favor larger sizes
+      }
+  
       if (adjustedScore > bestScore) {
         bestScore = adjustedScore;
         bestMatch = size;
@@ -132,7 +155,6 @@ const SizeQuizModal = ({ productData, onClose, onSizeSelected }) => {
       fitAnalysis[measure] = { fit, confidence };
     }
 
-    const sizeOrder = ["XS", "S", "M", "L", "XL"];
     const currentIndex = sizeOrder.indexOf(bestMatch);
     const alternativeSizes = [];
     
@@ -180,45 +202,69 @@ const SizeQuizModal = ({ productData, onClose, onSizeSelected }) => {
             <div>
               <label className="block text-sm font-medium mb-2">Height (cm)</label>
               <input
-                type="number"
+                type="text" // Changed from number to text
                 value={basicInfo.height}
                 onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty input or numbers only
+                  if (value === '' || (/^\d*\.?\d*$/.test(value) && value.length <= 6)) {
+                    const numValue = parseFloat(value);
+                    if (value === '' || (!isNaN(numValue) && numValue >= 0 && numValue <= 220)) {
+                      setBasicInfo(prev => ({
+                        ...prev,
+                        height: value
+                      }));
+                    }
+                  }
+                }}
+                onBlur={(e) => {
                   const value = parseFloat(e.target.value);
-                  if (!isNaN(value) && value >= 120 && value <= 220) {
+                  if (isNaN(value) || value < 120 || value > 220) {
                     setBasicInfo(prev => ({
                       ...prev,
-                      height: value
+                      height: ''
                     }));
                   }
                 }}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                 placeholder="170"
-                min="120"
-                max="220"
               />
+              <p className="text-xs text-gray-500 mt-1">Valid range: 120-220 cm</p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Weight (kg)</label>
               <input
-                type="number"
+                type="text" // Changed from number to text
                 value={basicInfo.weight}
                 onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty input or numbers only
+                  if (value === '' || (/^\d*\.?\d*$/.test(value) && value.length <= 5)) {
+                    const numValue = parseFloat(value);
+                    if (value === '' || (!isNaN(numValue) && numValue >= 0 && numValue <= 200)) {
+                      setBasicInfo(prev => ({
+                        ...prev,
+                        weight: value
+                      }));
+                    }
+                  }
+                }}
+                onBlur={(e) => {
                   const value = parseFloat(e.target.value);
-                  if (!isNaN(value) && value >= 30 && value <= 200) {
+                  if (isNaN(value) || value < 30 || value > 200) {
                     setBasicInfo(prev => ({
                       ...prev,
-                      weight: value
+                      weight: ''
                     }));
                   }
                 }}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                 placeholder="60"
-                min="30"
-                max="200"
               />
+              <p className="text-xs text-gray-500 mt-1">Valid range: 30-200 kg</p>
             </div>
           </div>
-
+  
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-sm text-blue-700">
               This information helps us provide more accurate size recommendations.

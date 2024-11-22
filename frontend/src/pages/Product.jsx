@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams , useNavigate} from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext';
 import { assets } from '../assets/assets';
 import RelatedProducts from '../components/RelatedProducts';
@@ -7,10 +7,23 @@ import SizeQuizModal from '../components/size-recommendation/SizeQuizModal.jsx';
 import SizeChartButton from "../components/SizeChartButton";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { log } from 'three/webgpu';
 
 const Product = () => {
+  const navigate = useNavigate();
   const { productId } = useParams();
-  const { backendUrl, token, products, currency, addToCart } = useContext(ShopContext);
+  const { 
+    backendUrl, 
+    token, 
+    products, 
+    currency, 
+    addToCart,
+    wishlistItems,
+    addToWishlist,
+    removeFromWishlist,
+    getWishlist 
+  } = useContext(ShopContext);
+  
   const [productData, setProductData] = useState(null);
   const [image, setImage] = useState('');
   const [size, setSize] = useState('');
@@ -24,6 +37,7 @@ const Product = () => {
   const [reviewUpdated, setReviewUpdated] = useState(false);
   const [showOptionsForReviewId, setShowOptionsForReviewId] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Fetch the userId based on the token
   const fetchUserId = async () => {
@@ -34,10 +48,52 @@ const Product = () => {
         {},
         { headers: { token } }
       );
-      setUserId(response.data.userId);
+      setUserId(response.data.userId); // Use the userId
+      
     } catch (error) {
       console.error("Error fetching user ID:", error);
       toast.error("Unable to fetch user data.");
+      console.log("user id: ",userId)
+    }
+  };
+
+   // Handle Add to Cart action
+   const handleAddToCart = async () => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    if (!size) {
+      toast.warning("Please select a size first");
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      await addToCart(productData._id, size);
+      toast.success("Added to cart successfully!");
+    } catch (error) {
+      toast.error("Failed to add to cart. Please try again.");
+      console.error("Add to cart error:", error);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const handleWishlist = async () => {
+    try {
+      // Check if the product is already in the wishlist
+      if (wishlistItems.includes(productId)) {
+        // If the product is already in the wishlist, remove it
+        await removeFromWishlist(productId); // Remove the product from the wishlist
+      } else {
+        await addToWishlist(productId); // Add the product to the wishlist
+      }
+    } catch (error) {
+      // If an error occurs while adding/removing the product from the wishlist, show an error message
+      console.error("Error updating wishlist:", error); // Log the error to the console
+      toast.error("Unable to update wishlist. Please try again later."); // Show error message
     }
   };
 
@@ -72,17 +128,37 @@ const Product = () => {
     fetchProductData();
     fetchProductReviews();
     fetchUserId();
+    getWishlist();
   }, [productId, products, token]);
 
   useEffect(() => {
     fetchProductReviews();
   }, [reviewUpdated]);
 
-  // Handle size selection from quiz
+  useEffect(() => {
+    fetchProductReviews();
+  }, [token]);
+
+  // Handle size selection
   const handleSizeSelect = (selectedSize) => {
     setSize(selectedSize);
-    setRecommendedSize(selectedSize);
-    setShowSizeQuiz(false);
+    if (selectedSize !== recommendedSize) {
+      setRecommendedSize(null); // Clear recommended size if user selects a different size
+    }
+    // toast.success(`Size ${selectedSize} selected`);
+  };
+
+  // Get button text based on state
+  const getButtonText = () => {
+    if (!token) return "SIGN IN TO SHOP";
+    if (isAddingToCart) return "ADDING...";
+    if (!size) return "SELECT A SIZE";
+    return "ADD TO CART";
+  };
+
+  // Get button state
+  const isButtonDisabled = () => {
+    return isAddingToCart || (!token || !size);
   };
 
   // Submit a new review
@@ -168,14 +244,20 @@ const Product = () => {
       );
 
       if (response.data.success) {
-        const sanitizedReviews = response.data.reviews.map((review) => ({
-          ...review,
-          user: review.user || { _id: null, name: "Anonymous" },
-        }));
-        setReviews(sanitizedReviews);
-        calculateAverageRating(sanitizedReviews);
+        const reviews = response.data.reviews || []; // Default to an empty array if no reviews
+        if (reviews.length > 0) {
+          const sanitizedReviews = reviews.map((review) => ({
+            ...review,
+            user: review.user || { _id: null, name: "Anonymous" }, // Fallback user object
+          }));
+          setReviews(sanitizedReviews);
+          calculateAverageRating(sanitizedReviews);
+        } else {
+          setReviews([]); // Clear reviews for a clean empty state
+          calculateAverageRating([]); // Handle no reviews in the average rating
+        }
       } else {
-        toast.error("No reviews found for this product.");
+        //toast.info("No reviews found for this product."); // Informative message for no reviews
       }
     } catch (error) {
       console.error("Error fetching reviews:", error);
@@ -238,40 +320,88 @@ const Product = () => {
           <p className='mt-5 text-gray-500 md:w-4/5'>{productData.description}</p>
 
           {/* Size Selection */}
-          <div className='flex flex-col gap-4 my-8'>
-            <div className="flex justify-between items-center">
-              <p className="font-medium">Select Size</p>
-              <div className="flex items-center gap-4">
-                <SizeChartButton />
-                <button 
-                  onClick={() => setShowSizeQuiz(true)}
-                  className="text-blue-600 text-sm hover:underline flex items-center gap-1"
-                >
-                  <span>Not sure? Find your size</span>
-                </button>
-              </div>
-            </div>
+      <div className='flex flex-col gap-4 my-8'>
+        <div className="flex justify-between items-center">
+          <p className="font-medium">Select Size</p>
+          <div className="flex items-center gap-4">
+            <SizeChartButton />
+            {token && (
+              <button 
+                onClick={() => setShowSizeQuiz(true)}
+                className="text-blue-600 text-sm hover:underline flex items-center gap-1"
+              >
+                <span>Not sure? Find your size</span>
+              </button>
+            )}
+          </div>
+        </div>
 
-            <div className='flex gap-2'>
-              {productData.sizes.map((item) => (
-                <button 
-                  key={item}
-                  onClick={() => setSize(item)} 
-                  className={`
-                    relative px-4 py-2 border rounded-lg transition-all
-                    ${item === size ? 'border-orange-500 bg-orange-50' : 'border-gray-200'}
-                    ${item === recommendedSize ? 'ring-2 ring-blue-500' : ''}
-                  `}
-                >
-                  {item}
-                  {item === recommendedSize && (
-                    <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full text-[10px]">
-                      Recommended
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
+        <div className='flex flex-wrap gap-2'>
+          {productData.sizes.map((item) => (
+            <button 
+              key={item}
+              onClick={() => handleSizeSelect(item)} 
+              className={`
+                relative px-4 py-2 border rounded-lg transition-all
+                ${item === size ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}
+                ${item === recommendedSize ? 'ring-2 ring-blue-500' : ''}
+                ${!token ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+              `}
+              disabled={!token}
+            >
+              {item}
+              {item === recommendedSize && (
+                <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full text-[10px]">
+                  Recommended
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        {!token && (
+          <p className="text-sm text-gray-500 italic">
+            Please sign in to select a size
+          </p>
+        )}
+      </div>
+
+          <div className="flex space-x-4">
+            <button
+              onClick={() => {
+                if (!token) {
+                  navigate("/login"); // Redirect to login page
+                } else {
+                  addToCart(productData._id, size);
+                }
+              }}
+              className="bg-black text-white px-8 py-3 text-sm active:bg-gray-700"
+            >
+              {token ? "ADD TO CART" : "SIGN IN"}
+            </button>
+
+            {token && ( // Only show the wishlist button if the user is logged in
+              <button
+                onClick={handleWishlist}
+                className={`border px-4 py-3 text-sm flex items-center ${
+                  wishlistItems.includes(productId)
+                    ? "bg-red-500 text-white"
+                    : "bg-white text-black"
+                }`}
+              >
+                <img
+                  src={assets.wish_list}
+                  alt="Wishlist Icon"
+                  className="mr-2"
+                  style={{
+                    width: "20px", // Adjust the width as needed
+                    height: "20px", // Adjust the height similarly
+                  }}
+                />
+                {wishlistItems.includes(productId)
+                  ? "In Wishlist"
+                  : "Add to Wishlist"}
+              </button>
+            )}
           </div>
 
           {/*Size Quiz Modal */}
@@ -288,18 +418,7 @@ const Product = () => {
             />
           )}
 
-          <button 
-            onClick={() => size ? addToCart(productData._id, size) : null}
-            className={`
-              w-full sm:w-auto px-8 py-3 text-sm rounded-lg transition-all
-              ${size 
-                ? 'bg-black text-white hover:bg-gray-800 active:bg-gray-700' 
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }
-            `}
-          >
-            {size ? 'ADD TO CART' : 'SELECT A SIZE'}
-          </button>
+          
 
           {/* Additional Product Info */}
           <hr className='mt-8 sm:w-4/5' />

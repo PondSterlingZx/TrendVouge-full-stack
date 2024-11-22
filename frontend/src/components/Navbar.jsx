@@ -31,14 +31,14 @@ const Navbar = () => {
             <p>COLLECTIONS</p>
             <hr className='w-2/4 border-none h-[1.5px] bg-gray-700 hidden' />
         </NavLink>
-        <NavLink to='/women' className='flex flex-col items-center gap-1'>
+        {/* <NavLink to='/women' className='flex flex-col items-center gap-1'>
             <p>WOMEN</p>
             <hr className='w-2/4 border-none h-[1.5px] bg-gray-700 hidden' />
         </NavLink>
         <NavLink to='/men' className='flex flex-col items-center gap-1'>
             <p>MEN</p>
             <hr className='w-2/4 border-none h-[1.5px] bg-gray-700 hidden' />
-        </NavLink>
+        </NavLink> */}
         <NavLink to='/customize' className='flex flex-col items-center gap-1'>
             <p>CUSTOMIZE</p>
             <hr className='w-2/4 border-none h-[1.5px] bg-gray-700 hidden' />

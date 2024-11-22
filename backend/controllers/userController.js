@@ -83,14 +83,14 @@ const registerUser = async (req, res) => {
 // Route for admin login
 const adminLogin = async (req, res) => {
     try {
-        
-        const {email,password} = req.body
+
+        const { email, password } = req.body
 
         if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-            const token = jwt.sign(email+password,process.env.JWT_SECRET);
-            res.json({success:true,token})
+            const token = jwt.sign(email + password, process.env.JWT_SECRET);
+            res.json({ success: true, token })
         } else {
-            res.json({success:false,message:"Invalid credentials"})
+            res.json({ success: false, message: "Invalid credentials" })
         }
 
     } catch (error) {
@@ -99,5 +99,24 @@ const adminLogin = async (req, res) => {
     }
 }
 
+// Get User Id
+const getUserId = (req, res) => {
+    try {
+        // The authUser middleware already attaches the userId to the request body
+        const userId = req.body.userId;
 
-export { loginUser, registerUser, adminLogin }
+        // If userId is not found, return an error
+        if (!userId) {
+            return res.status(400).json({ success: false, message: "User ID not found." });
+        }
+
+        // Send the userId back to the frontend
+        res.status(200).json({ success: true, userId: userId });
+    } catch (error) {
+        console.error("Error fetching user ID:", error);
+        // Handling server errors more clearly
+        res.status(500).json({ success: false, message: "Server error while fetching user ID." });
+    }
+};
+
+export { loginUser, registerUser, adminLogin, getUserId }

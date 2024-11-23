@@ -138,34 +138,54 @@ const ShopContextProvider = (props) => {
   const addToWishlist = async (productId) => {
     try {
       if (!token) {
-        toast.error("User not authenticated");
+        toast.error("Please sign in to add to wishlist");
         return;
       }
-  
-      // Get userId first
+
+      // First get userId
       const userResponse = await axios.post(
         `${backendUrl}/api/user/getId`,
         {},
         { headers: { token } }
       );
       const userId = userResponse.data.userId;
-  
+
+      // Add to wishlist
       const response = await axios.post(
         `${backendUrl}/api/wishlist/add`,
-        { productId, userId },
-        { headers: { token } }
+        { 
+          productId: productId, // Make sure this matches your backend expectation
+          userId: userId  // Include userId in request body
+        },
+        { 
+          headers: { 
+            token: token,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
-  
+
       if (response.data.success) {
-        setWishlistItems((prev) => [...prev, productId]);
-        toast.success("Added to wishlist");
+        // Update local state only after successful API call
+        setWishlistItems(prev => [...prev, productId]);
+        toast.success("Added to wishlist successfully!");
       }
     } catch (error) {
-      console.error(error);
-      toast.error("An error occurred while adding to wishlist");
+      console.error("Wishlist error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      if (error.response?.status === 400) {
+        toast.warning(error.response.data.message || "Item already in wishlist");
+      } else {
+        toast.error("Failed to add to wishlist. Please try again.");
+      }
     }
-  };
-  
+};
+    
+
   const removeFromWishlist = async (productId) => {
     try {
       if (!token) {

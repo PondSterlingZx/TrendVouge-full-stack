@@ -11,6 +11,7 @@ import sizeRecommendationRouter from './routes/sizeRecommendationRoute.js';
 import reviewRouter from "./routes/reviewRoute.js";
 import wishlistRouter from './routes/wishlistRoute.js'
 import notificationRouter from './routes/notificationRoute.js';
+// import customRouter from "./routes/customRoute.js";
 
 // App Config
 const app = express()
@@ -31,7 +32,7 @@ app.use('/api/size-recommendation', sizeRecommendationRouter)
 app.use("/api/review", reviewRouter);
 app.use('/api/wishlist', wishlistRouter);
 app.use('/api/notification', notificationRouter);
-
+// app.use("/api/custom", customRouter);
 
 app.get('/',(req,res)=>{
     res.send("API Working")

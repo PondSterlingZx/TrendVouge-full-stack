@@ -1,11 +1,23 @@
 import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/productModel.js"
+import reviewModel from "../models/reviewModel.js"
+import wishlistModel from "../models/wishlistModel.js"
+import orderModel from "../models/orderModel.js"
 
 // function for add product
 const addProduct = async (req, res) => {
     try {
-
-        const { name, description, price, category, subCategory, sizes, bestseller, customize } = req.body
+        const {
+            name,
+            description,
+            price,
+            category,
+            subCategory,
+            sizes,
+            bestseller,
+            customize,
+            stockLevel
+        } = req.body
 
         const image1 = req.files.image1 && req.files.image1[0]
         const image2 = req.files.image2 && req.files.image2[0]
@@ -21,6 +33,13 @@ const addProduct = async (req, res) => {
             })
         )
 
+        // Parse sizes array and create initial stock levels
+        const parsedSizes = JSON.parse(sizes)
+        const initialStockLevels = parsedSizes.reduce((acc, size) => {
+            acc[size] = stockLevel ? (JSON.parse(stockLevel)[size] || 0) : 0;
+            return acc;
+        }, {});
+
         const productData = {
             name,
             description,
@@ -28,7 +47,8 @@ const addProduct = async (req, res) => {
             price: Number(price),
             subCategory,
             bestseller: bestseller === "true" ? true : false,
-            sizes: JSON.parse(sizes),
+            sizes: parsedSizes,
+            stockLevel: initialStockLevels,
             image: imagesUrl,
             customize: customize === "true" ? true : false,
             date: Date.now()
@@ -47,10 +67,57 @@ const addProduct = async (req, res) => {
     }
 }
 
+const updateStockLevel = async (req, res) => {
+    try {
+        // Extract the restock data (an array of {productId, size, stockAmount})
+        const { restockData } = req.body;
+
+        // Validate that restockData is an array
+        if (!Array.isArray(restockData) || restockData.length === 0) {
+            return res.status(400).json({ success: false, message: "No restock data provided." });
+        }
+
+        // Loop over each restock item and update the stock levels accordingly
+        for (let item of restockData) {
+            const { productId, size, stockAmount } = item;
+
+            // Find the product by its ID
+            const product = await productModel.findById(productId);
+
+            // If product is not found, return error
+            if (!product) {
+                return res.status(404).json({ success: false, message: `Product not found: ${productId}` });
+            }
+
+            // Check if stockLevel exists for the given size
+            if (product.stockLevel.has(size)) {
+                // Ensure both values are numbers before adding
+                const currentStock = Number(product.stockLevel.get(size)) || 0; // Default to 0 if undefined
+                const additionalStock = Number(stockAmount) || 0; // Default to 0 if stockAmount is invalid
+                product.stockLevel.set(size, currentStock + additionalStock);
+            } else {
+                // Initialize the stock level with a numeric value
+                product.stockLevel.set(size, Number(stockAmount) || 0);
+            }
+
+
+            // Save the updated product
+            await product.save();
+        }
+
+        // Return success response after updating all stock levels
+        res.json({ success: true, message: "Stock levels updated successfully." });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: "Error updating stock levels." });
+    }
+};
+
+
 // function for list product
 const listProducts = async (req, res) => {
     try {
-
         const products = await productModel.find({});
         res.json({ success: true, products })
 
@@ -60,12 +127,25 @@ const listProducts = async (req, res) => {
     }
 }
 
-// function for removing product
+// function for removing product, its reviews and from wishlists
 const removeProduct = async (req, res) => {
     try {
+        // Delete the product
+        const deletedProduct = await productModel.findByIdAndDelete(req.body.id)
+        if (!deletedProduct) {
+            return res.json({ success: false, message: "Product not found" })
+        }
 
-        await productModel.findByIdAndDelete(req.body.id)
-        res.json({ success: true, message: "Product Removed" })
+        // Delete all reviews associated with this product
+        await reviewModel.deleteMany({ productId: req.body.id })
+
+        // Remove product from all wishlists
+        await wishlistModel.updateMany(
+            { wishlist: req.body.id }, // Find all wishlist documents containing this product
+            { $pull: { wishlist: req.body.id } } // Remove the product ID from the wishlist array
+        )
+
+        res.json({ success: true, message: "Product, associated reviews and wishlist entries removed" })
 
     } catch (error) {
         console.log(error)
@@ -76,7 +156,6 @@ const removeProduct = async (req, res) => {
 // function for single product info
 const singleProduct = async (req, res) => {
     try {
-
         const { productId } = req.body
         const product = await productModel.findById(productId)
         res.json({ success: true, product })
@@ -87,4 +166,4 @@ const singleProduct = async (req, res) => {
     }
 }
 
-export { listProducts, addProduct, removeProduct, singleProduct }
+export { listProducts, addProduct, removeProduct, singleProduct, updateStockLevel }

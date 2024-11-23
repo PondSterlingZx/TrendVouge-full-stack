@@ -11,15 +11,14 @@ import Orders from './pages/Orders'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import SearchBar from './components/SearchBar'
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Verify from './pages/Verify'
 import Men from './pages/Men'
 import Customize from './pages/Customize'
 import Wishlist from './pages/Wishlist'
 import Matching from './pages/Matching'
-
-
+import ProductCustomize from './pages/ProductCustomize'  // Make sure this import is added
 
 const App = () => {
   return (
@@ -32,7 +31,6 @@ const App = () => {
         <Route path='/collection' element={<Collection />} />
         <Route path='/women' element={<Women />} />
         <Route path='/men' element={<Men />} />
-        <Route path='/customize' element={<Customize />} />
         <Route path='/product/:productId' element={<Product />} />
         <Route path='/cart' element={<Cart />} />
         <Route path='/login' element={<Login />} />
@@ -41,7 +39,8 @@ const App = () => {
         <Route path='/verify' element={<Verify />} />
         <Route path='/wishlist' element={<Wishlist/>} />
         <Route path='/matching' element={<Matching/>} />
-        
+        <Route path='/customize' element={<Customize />} />
+        <Route path="/product-customize/:id" element={<ProductCustomize />} />
       </Routes>
       <Footer />
     </div>

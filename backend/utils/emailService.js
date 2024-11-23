@@ -218,9 +218,9 @@ export const sendWishlistNotification = async (userEmail, userName, product) => 
     return emailService.sendWishlistNotification(userEmail, userName, product);
   };
 
-// For testing in development
-export const testEmailService = async () => {
-  return emailService.test();
-};
+// // For testing in development
+// export const testEmailService = async () => {
+//   return emailService.test();
+// };
 
 export default emailService;

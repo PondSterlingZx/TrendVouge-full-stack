@@ -100,7 +100,7 @@ const adminLogin = async (req, res) => {
 }
 
 // Get User Id
-const getUserId = (req, res) => {
+const getUserId = async (req, res) => {
     try {
         // The authUser middleware already attaches the userId to the request body
         const userId = req.body.userId;
@@ -110,12 +110,23 @@ const getUserId = (req, res) => {
             return res.status(400).json({ success: false, message: "User ID not found." });
         }
 
-        // Send the userId back to the frontend
-        res.status(200).json({ success: true, userId: userId });
+        // Fetch the email of the user with the given userId
+        const user = await userModel.findOne({ _id: userId }, 'email'); // Find user by ID and select only the email field
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+
+        // Send the userId and their email back to the frontend
+        res.status(200).json({
+            success: true,
+            userId: userId,
+            email: user.email
+        });
     } catch (error) {
-        console.error("Error fetching user ID:", error);
+        console.error("Error fetching user ID or email:", error);
         // Handling server errors more clearly
-        res.status(500).json({ success: false, message: "Server error while fetching user ID." });
+        res.status(500).json({ success: false, message: "Server error while fetching user ID and email." });
     }
 };
 

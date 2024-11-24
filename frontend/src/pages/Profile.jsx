@@ -1,11 +1,25 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 
-const WishlistPage = () => {
-  const { wishlistItems, removeFromWishlist, products, currency, addToCart } =
+const Profile = () => {
+  const { user, wishlistItems, products, currency, removeFromWishlist } =
     useContext(ShopContext);
+
+  const [profileData, setProfileData] = useState({
+    name: "",
+    email: "",
+  });
   const [wishlistProducts, setWishlistProducts] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name,
+        email: user.email,
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     const filteredProducts = products.filter((product) =>
@@ -18,13 +32,23 @@ const WishlistPage = () => {
     removeFromWishlist(productId);
   };
 
-  // const handleAddToCart = (productId, size) => {
-  //   addToCart(productId, size);
-  // };
-
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">My Wishlist</h1>
+      <h1 className="text-3xl font-bold mb-6">Profile</h1>
+
+      {/* Profile Info */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold mb-4">User Information</h2>
+        <p>
+          <strong>Name:</strong> {profileData.name}
+        </p>
+        <p>
+          <strong>Email:</strong> {profileData.email}
+        </p>
+      </div>
+
+      {/* Wishlist Section */}
+      <h2 className="text-2xl font-semibold mb-4">My Wishlist</h2>
       {wishlistProducts.length === 0 ? (
         <p>Your wishlist is empty.</p>
       ) : (
@@ -68,4 +92,4 @@ const WishlistPage = () => {
   );
 };
 
-export default WishlistPage;
+export default Profile;

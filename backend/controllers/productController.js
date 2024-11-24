@@ -1,8 +1,9 @@
 import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/productModel.js"
 import reviewModel from "../models/reviewModel.js"
-import wishlistModel from "../models/wishlistModel.js"
-import orderModel from "../models/orderModel.js"
+import userModel from "../models/userModel.js"
+import notifyModel from '../models/notifyModel.js';
+import { sendNotifyEmails } from '../controllers/notifyController.js'; // Import the notify function
 
 // function for add product
 const addProduct = async (req, res) => {
@@ -100,17 +101,19 @@ const updateStockLevel = async (req, res) => {
                 product.stockLevel.set(size, Number(stockAmount) || 0);
             }
 
-
             // Save the updated product
             await product.save();
+
+            // After updating stock, send notifications for this product and size
+            await sendNotifyEmails(productId, size);
         }
 
-        // Return success response after updating all stock levels
-        res.json({ success: true, message: "Stock levels updated successfully." });
+        // Return success response after updating all stock levels and sending notifications
+        res.json({ success: true, message: "Stock levels updated and notifications sent successfully." });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: "Error updating stock levels." });
+        res.status(500).json({ success: false, message: "Error updating stock levels and notifying users." });
     }
 };
 
@@ -139,11 +142,11 @@ const removeProduct = async (req, res) => {
         // Delete all reviews associated with this product
         await reviewModel.deleteMany({ productId: req.body.id })
 
-        // Remove product from all wishlists
-        await wishlistModel.updateMany(
-            { wishlist: req.body.id }, // Find all wishlist documents containing this product
-            { $pull: { wishlist: req.body.id } } // Remove the product ID from the wishlist array
-        )
+        // Remove product from all user wishlists
+        await userModel.updateMany(
+            { wishlist: req.body.id }, // Find users whose wishlist contains this product
+            { $pull: { wishlist: req.body.id } } // Remove the product ID from their wishlist array
+        );
 
         res.json({ success: true, message: "Product, associated reviews and wishlist entries removed" })
 

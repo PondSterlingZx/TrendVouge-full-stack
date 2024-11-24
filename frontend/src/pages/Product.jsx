@@ -1,32 +1,32 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { useParams , useNavigate} from 'react-router-dom'
-import { ShopContext } from '../context/ShopContext';
-import { assets } from '../assets/assets';
-import RelatedProducts from '../components/RelatedProducts';
-import SizeQuizModal from '../components/size-recommendation/SizeQuizModal.jsx';
+import React, { useContext, useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ShopContext } from "../context/ShopContext";
+import { assets } from "../assets/assets";
+import RelatedProducts from "../components/RelatedProducts";
+import SizeQuizModal from "../components/size-recommendation/SizeQuizModal.jsx";
 import SizeChartButton from "../components/SizeChartButton";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { log } from 'three/webgpu';
+//import { log } from "three/webgpu";
 
 const Product = () => {
   const navigate = useNavigate();
   const { productId } = useParams();
-  const { 
-    backendUrl, 
-    token, 
-    products, 
-    currency, 
+  const {
+    backendUrl,
+    token,
+    products,
+    currency,
     addToCart,
     wishlistItems,
     addToWishlist,
     removeFromWishlist,
-    getWishlist 
+    getWishlist,
   } = useContext(ShopContext);
-  
+
   const [productData, setProductData] = useState(null);
-  const [image, setImage] = useState('');
-  const [size, setSize] = useState('');
+  const [image, setImage] = useState("");
+  const [size, setSize] = useState("");
   const [showSizeQuiz, setShowSizeQuiz] = useState(false);
   const [recommendedSize, setRecommendedSize] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -37,7 +37,67 @@ const Product = () => {
   const [reviewUpdated, setReviewUpdated] = useState(false);
   const [showOptionsForReviewId, setShowOptionsForReviewId] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [userGmail, setUserGmail] = useState("");
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [isEditing, setIsEditing] = useState(false); // Toggle editing mode
+
+  const handleEmailChange = (e) => setEmail(e.target.value);
+
+  const handleEmailSubmit = async () => {
+    // Use userGmail if email is empty
+    const finalEmail = email || userGmail;
+
+    // Check if email is provided
+    if (!finalEmail) {
+      toast.error("Please enter a valid email.");
+      return;
+    }
+
+    try {
+      // Validate email syntax
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(finalEmail)) {
+        toast.error("Please enter a valid email address.");
+        return;
+      }
+      console.log("Email sent:", finalEmail);
+
+      // Send request to backend to add notification
+      const response = await axios.post(
+        `${backendUrl}/api/notify/add`,
+        { email: finalEmail, productId, size },
+        { headers: { token } }
+      );
+
+      // Log the response for debugging
+      console.log("Response from backend:", response);
+
+      // Handle response from backend
+      if (response.data.success) {
+        toast.success(
+          "You will be notified when the product is back in stock."
+        );
+        setShowModal(false); // Close modal if successful
+      } else {
+        toast.error(
+          response.data.message || "Something went wrong. Please try again."
+        );
+      }
+    } catch (error) {
+      // Handle errors during the request
+      toast.error(
+        error.response?.data?.message ||
+          "Error sending notification. Please try again."
+      );
+    }
+
+    // Clear email field and reset editing state
+    setEmail(""); // Reset the email input field
+    setIsEditing(false); // Reset editing state if applicable
+  };
 
   // Fetch the userId based on the token
   const fetchUserId = async () => {
@@ -49,37 +109,31 @@ const Product = () => {
         { headers: { token } }
       );
       setUserId(response.data.userId); // Use the userId
-      
+      setUserGmail(response.data.email); // Set user's email
     } catch (error) {
-      console.error("Error fetching user ID:", error);
+      //console.error("Error fetching user ID:", error);
       toast.error("Unable to fetch user data.");
-      console.log("user id: ",userId)
+      //console.log("user id: ", userId);
     }
   };
 
-   // Handle Add to Cart action
-   const handleAddToCart = async () => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+  // Handle Add to Cart action
+  // const handleAddToCart = async () => {
+  //   if (!size) {
+  //     toast.warning("Please select a size first");
+  //     return;
+  //   }
 
-    if (!size) {
-      toast.warning("Please select a size first");
-      return;
-    }
-
-    try {
-      setIsAddingToCart(true);
-      await addToCart(productData._id, size);
-      toast.success("Added to cart successfully!");
-    } catch (error) {
-      toast.error("Failed to add to cart. Please try again.");
-      console.error("Add to cart error:", error);
-    } finally {
-      setIsAddingToCart(false);
-    }
-  };
+  //   try {
+  //     setIsAddingToCart(true);
+  //     await addToCart(productData._id, size, quantity);
+  //   } catch (error) {
+  //     toast.error("Failed to add to cart. Please try again.");
+  //     console.error("Add to cart error:", error);
+  //   } finally {
+  //     setIsAddingToCart(false);
+  //   }
+  // };
 
   const handleWishlist = async () => {
     if (!token) {
@@ -87,26 +141,29 @@ const Product = () => {
       navigate("/login");
       return;
     }
-  
+
     try {
+      // Check if product is already in the wishlist
       if (wishlistItems.includes(productId)) {
+        // Remove from wishlist if product is already there
         await removeFromWishlist(productId);
       } else {
+        // Add to wishlist if product is not there yet
         await addToWishlist(productId);
       }
     } catch (error) {
-      console.error("Error updating wishlist:", error);
+      //console.error("Error updating wishlist:", error);
       toast.error("Unable to update wishlist. Please try again.");
     }
   };
 
   const fetchProductData = async () => {
-    const item = products.find(item => item._id === productId);
+    const item = products.find((item) => item._id === productId);
     if (item) {
       setProductData(item);
       setImage(item.image[0]);
     }
-  }
+  };
 
   // Calculate average rating for the reviews
   const calculateAverageRating = (productReviews) => {
@@ -136,9 +193,9 @@ const Product = () => {
         await getWishlist();
       }
     };
-    
+
     initialize();
-  }, [productId, products, token]); 
+  }, [productId, products, token]);
 
   useEffect(() => {
     fetchProductReviews();
@@ -151,6 +208,7 @@ const Product = () => {
   // Handle size selection
   const handleSizeSelect = (selectedSize) => {
     setSize(selectedSize);
+    setQuantity(1); // Reset quantity to 1
     if (selectedSize !== recommendedSize) {
       setRecommendedSize(null); // Clear recommended size if user selects a different size
     }
@@ -167,7 +225,7 @@ const Product = () => {
 
   // Get button state
   const isButtonDisabled = () => {
-    return isAddingToCart || (!token || !size);
+    return isAddingToCart || !token || !size;
   };
 
   // Submit a new review
@@ -210,7 +268,7 @@ const Product = () => {
         toast.success("Review added successfully.");
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
+      //console.error("Error submitting review:", error);
       toast.error("An error occurred while submitting your review.");
     }
   };
@@ -231,7 +289,7 @@ const Product = () => {
         toast.error("Failed to delete review.");
       }
     } catch (error) {
-      console.error("Error deleting review:", error);
+      //console.error("Error deleting review:", error);
       toast.error("An error occurred while deleting your review.");
     }
   };
@@ -269,7 +327,7 @@ const Product = () => {
         //toast.info("No reviews found for this product."); // Informative message for no reviews
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
+      //console.error("Error fetching reviews:", error);
       toast.error("Error fetching reviews.");
     }
   };
@@ -284,30 +342,30 @@ const Product = () => {
   }
 
   return (
-    <div className='border-t-2 pt-10 transition-opacity ease-in duration-500 opacity-100'>
-      <div className='flex gap-12 sm:gap-12 flex-col sm:flex-row'>
+    <div className="border-t-2 pt-10 transition-opacity ease-in duration-500 opacity-100">
+      <div className="flex gap-12 sm:gap-12 flex-col sm:flex-row">
         {/* Product Images */}
-        <div className='flex-1 flex flex-col-reverse gap-3 sm:flex-row'>
-          <div className='flex sm:flex-col overflow-x-auto sm:overflow-y-scroll justify-between sm:justify-normal sm:w-[18.7%] w-full'>
+        <div className="flex-1 flex flex-col-reverse gap-3 sm:flex-row">
+          <div className="flex sm:flex-col overflow-x-auto sm:overflow-y-scroll justify-between sm:justify-normal sm:w-[18.7%] w-full">
             {productData.image.map((item, index) => (
-              <img 
-                onClick={() => setImage(item)} 
-                src={item} 
-                key={index} 
-                className='w-[24%] sm:w-full sm:mb-3 flex-shrink-0 cursor-pointer' 
-                alt="" 
+              <img
+                onClick={() => setImage(item)}
+                src={item}
+                key={index}
+                className="w-[24%] sm:w-full sm:mb-3 flex-shrink-0 cursor-pointer"
+                alt=""
               />
             ))}
           </div>
-          <div className='w-full sm:w-[80%]'>
-            <img className='w-full h-auto' src={image} alt="" />
+          <div className="w-full sm:w-[80%]">
+            <img className="w-full h-auto" src={image} alt="" />
           </div>
         </div>
 
         {/* Product Info */}
-        <div className='flex-1'>
-          <h1 className='font-medium text-2xl mt-2'>{productData.name}</h1>
-          
+        <div className="flex-1">
+          <h1 className="font-medium text-2xl mt-2">{productData.name}</h1>
+
           {/* Rating Display */}
           <div className="flex items-center gap-1 mt-2">
             {[...Array(5)].map((_, index) => (
@@ -325,68 +383,175 @@ const Product = () => {
             <p className="pl-2">({reviews.length} Reviews)</p>
           </div>
 
-          <p className='mt-5 text-3xl font-medium'>{currency}{productData.price}</p>
-          <p className='mt-5 text-gray-500 md:w-4/5'>{productData.description}</p>
+          <p className="mt-5 text-3xl font-medium">
+            {currency}
+            {productData.price}
+          </p>
+          <p className="mt-5 text-gray-500 md:w-4/5">
+            {productData.description}
+          </p>
 
-          {/* Size Selection */}
-      <div className='flex flex-col gap-4 my-8'>
-        <div className="flex justify-between items-center">
-          <p className="font-medium">Select Size</p>
-          <div className="flex items-center gap-4">
-            <SizeChartButton />
-            {token && (
-              <button 
-                onClick={() => setShowSizeQuiz(true)}
-                className="text-blue-600 text-sm hover:underline flex items-center gap-1"
-              >
-                <span>Not sure? Find your size</span>
-              </button>
+          {/* -------- Size Selection Section ---------- */}
+          <div className="flex flex-col gap-4 my-8">
+            {/* Size Selection Header */}
+            <div className="flex justify-between items-center">
+              <p className="font-medium">Select Size</p>
+              <div className="flex items-center gap-4">
+                <SizeChartButton />{" "}
+                {/* Assuming this is a button component for the size chart */}
+                {token && (
+                  <button
+                    onClick={() => setShowSizeQuiz(true)}
+                    className="text-blue-600 text-sm hover:underline flex items-center gap-1"
+                  >
+                    <span>Not sure? Find your size</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Size Selection Buttons */}
+            <div className="flex flex-wrap gap-2">
+              {productData.sizes.map((item) => (
+                <button
+                  key={item}
+                  onClick={() => handleSizeSelect(item)} // Assuming handleSizeSelect function sets size state
+                  className={`
+          relative px-4 py-2 border rounded-lg transition-all
+          ${
+            item === size
+              ? "border-orange-500 bg-orange-50"
+              : "border-gray-200 hover:border-gray-300"
+          }
+          ${item === recommendedSize ? "ring-2 ring-blue-500" : ""}
+          ${!token ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+        `}
+                  disabled={!token} // Disable button if not logged in
+                >
+                  {item}
+                  {/* Show "Recommended" badge if it's the recommended size */}
+                  {item === recommendedSize && (
+                    <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full text-[10px]">
+                      Recommended
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Show message if not signed in */}
+            {!token && (
+              <p className="text-sm text-gray-500 italic">
+                Please sign in to select a size
+              </p>
+            )}
+
+            {/* Quantity Input and Availability */}
+            {size && productData.stockLevel[size] > 0 && (
+              <div className="mt-4">
+                <p>Select Quantity</p>
+                <input
+                  type="number"
+                  min="1"
+                  max={productData.stockLevel[size]} // Set max to available stock
+                  value={quantity}
+                  onChange={(e) =>
+                    setQuantity(
+                      Math.min(
+                        Number(e.target.value),
+                        productData.stockLevel[size]
+                      ) // Prevent exceeding max stock
+                    )
+                  }
+                  className="border py-2 px-4 w-20"
+                />
+                <p className="text-sm text-gray-500">
+                  {productData.stockLevel[size]} items available
+                </p>
+              </div>
+            )}
+
+            {/* Out of stock message */}
+            {size && productData.stockLevel[size] === 0 && (
+              <p className="text-sm text-grey-500 mt-4">
+                Out of stock. Click "Notify Us" to get updates when available.
+              </p>
             )}
           </div>
-        </div>
 
-        <div className='flex flex-wrap gap-2'>
-          {productData.sizes.map((item) => (
-            <button 
-              key={item}
-              onClick={() => handleSizeSelect(item)} 
-              className={`
-                relative px-4 py-2 border rounded-lg transition-all
-                ${item === size ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}
-                ${item === recommendedSize ? 'ring-2 ring-blue-500' : ''}
-                ${!token ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-              `}
-              disabled={!token}
-            >
-              {item}
-              {item === recommendedSize && (
-                <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full text-[10px]">
-                  Recommended
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-        {!token && (
-          <p className="text-sm text-gray-500 italic">
-            Please sign in to select a size
-          </p>
-        )}
-      </div>
-
+          {/* -------- Buttons Section ---------- */}
           <div className="flex space-x-4">
-            <button
-              onClick={() => {
-                if (!token) {
-                  navigate("/login"); // Redirect to login page
-                } else {
-                  addToCart(productData._id, size);
-                }
-              }}
-              className="bg-black text-white px-8 py-3 text-sm active:bg-gray-700"
-            >
-              {token ? "ADD TO CART" : "SIGN IN"}
-            </button>
+            {productData.stockLevel && productData.stockLevel[size] === 0 ? (
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-black text-white px-8 py-3 text-sm active:bg-gray-700"
+              >
+                NOTIFY US
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (!token) {
+                    navigate("/login"); // Redirect to login page
+                  } else {
+                    addToCart(productData._id, size, quantity);
+                  }
+                }}
+                className="bg-black text-white px-8 py-3 text-sm active:bg-gray-700"
+              >
+                {token ? "ADD TO CART" : "SIGN IN"}{" "}
+                {/* Conditional button text */}
+              </button>
+            )}
+
+            {/* Product Alert Subscription */}
+            {showModal && (
+              <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
+                <div className="bg-white p-6 rounded-lg w-96">
+                  <h2 className="text-xl font-semibold mb-4">
+                    Notify Me When Available
+                  </h2>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      value={email} // Show the current email state during editing
+                      onChange={handleEmailChange}
+                      className="border py-2 px-4 w-full mb-4"
+                      autoFocus // Autofocus the input for better user experience
+                    />
+                  ) : (
+                    <div className="border py-2 px-4 w-full mb-4 bg-gray-100 flex justify-between items-center">
+                      <span>{email || userGmail}</span>
+                      <button
+                        onClick={() => setIsEditing(true)} // Enable editing mode
+                        className="text-blue-500 text-sm"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => {
+                        setShowModal(false); // Close the modal
+                        setIsEditing(false); // Reset editing mode
+                        setEmail(""); // Optionally, clear the email field if desired
+                      }}
+                      className="bg-gray-300 text-black px-4 py-2 rounded"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      onClick={handleEmailSubmit}
+                      className="bg-black text-white px-6 py-2 rounded"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {token && ( // Only show the wishlist button if the user is logged in
               <button
@@ -420,18 +585,16 @@ const Product = () => {
                 name: productData.name,
                 category: productData.category,
                 image: image,
-                sizes: productData.sizes
+                sizes: productData.sizes,
               }}
               onClose={() => setShowSizeQuiz(false)}
               onSizeSelected={handleSizeSelect}
             />
           )}
 
-          
-
           {/* Additional Product Info */}
-          <hr className='mt-8 sm:w-4/5' />
-          <div className='text-sm text-gray-500 mt-5 space-y-1'>
+          <hr className="mt-8 sm:w-4/5" />
+          <div className="text-sm text-gray-500 mt-5 space-y-1">
             <p>100% Original product.</p>
             <p>Cash on delivery is available on this product.</p>
             <p>Easy return and exchange policy within 7 days.</p>
@@ -607,12 +770,12 @@ const Product = () => {
       </div>
 
       {/* Related Products */}
-      <RelatedProducts 
-        category={productData.category} 
-        subCategory={productData.subCategory} 
+      <RelatedProducts
+        category={productData.category}
+        subCategory={productData.subCategory}
       />
     </div>
   );
-}
+};
 
 export default Product;

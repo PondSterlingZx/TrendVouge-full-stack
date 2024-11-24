@@ -1,6 +1,4 @@
-import wishlistModel from '../models/wishlistModel.js';
 import userModel from '../models/userModel.js';
-import productModel from '../models/productModel.js';
 import { sendWishlistNotification } from '../utils/emailService.js';
 
 
@@ -9,63 +7,34 @@ const addToWishlist = async (req, res) => {
     try {
         const { productId } = req.body;
         const userId = req.body.userId; // From auth middleware
+        const user = await userModel.findById(userId); // Get user details
 
-        // Get user details
-        const user = await userModel.findById(userId);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-
-        // Get product details
-        const product = await productModel.findById(productId);
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: "Product not found"
-            });
-        }
-
-        // Check and update wishlist
-        let wishlist = await wishlistModel.findOne({ userId });
-
-        if (!wishlist) {
-            wishlist = new wishlistModel({ userId, wishlist: [productId] });
-        } else if (!wishlist.wishlist.includes(productId)) {
-            wishlist.wishlist.push(productId);
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: "Product already in wishlist"
-            });
-        }
-
-        await wishlist.save();
+        // Add product to wishlist
+        user.wishlist.push(productId);
+        await user.save();
 
         // Send email notification
-        console.log('Sending email to:', user.email);
-        try {
-            const emailResult = await sendWishlistNotification(
-                user.email,
-                user.name,
-                {
-                    name: product.name,
-                    image: product.image,
-                    price: product.price
-                }
-            );
-            console.log('Email notification result:', emailResult);
-        } catch (emailError) {
-            console.error('Failed to send email:', emailError);
-            // Continue with the response even if email fails
-        }
+        // console.log('Sending email to:', user.email);
+        // try {
+        //     const emailResult = await sendWishlistNotification(
+        //         user.email,
+        //         user.name,
+        //         {
+        //             name: product.name,
+        //             image: product.image,
+        //             price: product.price
+        //         }
+        //     );
+        //     console.log('Email notification result:', emailResult);
+        // } catch (emailError) {
+        //     console.error('Failed to send email:', emailError);
+        //     // Continue with the response even if email fails
+        // }
 
         res.status(200).json({
             success: true,
             message: "Product added to wishlist",
-            wishlist: wishlist.wishlist
+            wishlist: user.wishlist
         });
 
     } catch (error) {
@@ -81,26 +50,29 @@ const addToWishlist = async (req, res) => {
 // Remove an item from the wishlist
 const removeFromWishlist = async (req, res) => {
     const { productId } = req.body;
-
-    const userId = req.body.userId;
+    const userId = req.body.userId; // From auth middleware
 
     try {
-        const wishlist = await wishlistModel.findOne({ userId });
+        const user = await userModel.findById(userId); // Get user details
+        const productIndex = user.wishlist.indexOf(productId); // Get wishlist index
 
-        if (!wishlist) {
-            return res.status(404).json({ success: false, message: "Wishlist not found" });
-        }
+        // Remove the product from the wishlist
+        user.wishlist.splice(productIndex, 1);
+        await user.save();
 
-        const index = wishlist.wishlist.indexOf(productId);
-        if (index > -1) {
-            wishlist.wishlist.splice(index, 1);
-            await wishlist.save();
-            res.status(200).json({ success: true, message: "Product removed from wishlist", wishlist });
-        } else {
-            res.status(400).json({ success: false, message: "Product not found in wishlist" });
-        }
+        return res.status(200).json({
+            success: true,
+            message: "Product removed from wishlist",
+            wishlist: user.wishlist,
+        });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+        console.error('Error removing from wishlist:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
     }
 };
 
@@ -109,19 +81,35 @@ const getWishlist = async (req, res) => {
     const { userId } = req.params;
 
     if (!userId) {
-        return res.status(400).json({ success: false, message: "Missing userId" });
+        return res.status(400).json({
+            success: false,
+            message: "Missing userId"
+        });
     }
 
     try {
-        const wishlist = await wishlistModel.findOne({ userId });
+        // Find the user by ID
+        const user = await userModel.findById(userId);
 
-        if (!wishlist) {
-            return res.status(404).json({ success: false, message: "Wishlist not found" });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
         }
 
-        res.status(200).json({ success: true, wishlist: wishlist.wishlist });
+        // Respond with the user's wishlist
+        return res.status(200).json({
+            success: true,
+            wishlist: user.wishlist
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+        console.error('Error retrieving wishlist:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
     }
 };
 

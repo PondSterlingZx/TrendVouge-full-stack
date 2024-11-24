@@ -1,21 +1,9 @@
 import reviewModel from "../models/reviewModel.js";
-import productModel from "../models/productModel.js";
 
 // Function to add a review
 const addReview = async (req, res) => {
     try {
         const { productId, rating, comment } = req.body;
-
-        // Ensure the required fields are provided
-        if (!productId || !rating || !comment) {
-            return res.json({ success: false, message: "All fields are required" });
-        }
-
-        // Validate that the product exists
-        const product = await productModel.findById(productId);
-        if (!product) {
-            return res.json({ success: false, message: "Product not found" });
-        }
 
         // The userId is now in req.body.userId 
         const userId = req.body.userId;
@@ -44,11 +32,6 @@ const addReview = async (req, res) => {
 const getReviewsByProduct = async (req, res) => {
     try {
         const { productId } = req.body; // Extract productId from the request body
-
-        // Validate productId
-        if (!productId || typeof productId !== 'string') {
-            return res.json({ success: false, message: "Invalid product ID format, should be a string" });
-        }
 
         // Use aggregation to fetch reviews and join user data
         const reviews = await reviewModel.aggregate([
@@ -84,9 +67,9 @@ const getReviewsByProduct = async (req, res) => {
         ]);
 
         // Handle no reviews case
-        if (reviews.length === 0) {
-            return res.json({ success: false, message: "No reviews found for this product." });
-        }
+        // if (reviews.length === 0) {
+        //     return res.json({ success: false, message: "No reviews found for this product." });
+        // }
 
         // Return the reviews with user data
         res.json({ success: true, reviews });
@@ -102,15 +85,7 @@ const deleteReview = async (req, res) => {
     try {
         const { reviewId } = req.params;
 
-        // Validate reviewId as a string
-        if (typeof reviewId !== 'string') {
-            return res.json({ success: false, message: "Invalid review ID format, should be a string" });
-        }
-
         const review = await reviewModel.findById(reviewId);
-        if (!review) {
-            return res.json({ success: false, message: "Review not found" });
-        }
 
         // Delete the review
         await reviewModel.findByIdAndDelete(reviewId);

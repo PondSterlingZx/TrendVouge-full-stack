@@ -3,7 +3,6 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-
 export const ShopContext = createContext();
 
 const ShopContextProvider = (props) => {
@@ -18,42 +17,47 @@ const ShopContextProvider = (props) => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const navigate = useNavigate();
 
-  const addToCart = async (itemId, size, suppressToast = false) => {
+  const addToCart = async (itemId, size, quantity) => {
     if (!size) {
       toast.error("Select Product Size");
       return;
     }
 
+    if (quantity <= 0) {
+      toast.error("Invalid product quantity.");
+      return;
+    }
+
     let cartData = structuredClone(cartItems);
 
+    // Update cart data locally
     if (cartData[itemId]) {
       if (cartData[itemId][size]) {
-        cartData[itemId][size] += 1;
+        cartData[itemId][size] += quantity; // Add the quantity to the existing size quantity
       } else {
-        cartData[itemId][size] = 1;
+        cartData[itemId][size] = quantity; // Add the size with the given quantity
       }
     } else {
       cartData[itemId] = {};
-      cartData[itemId][size] = 1;
+      cartData[itemId][size] = quantity; // Initialize size with the given quantity
     }
     setCartItems(cartData);
 
+    // Update cart on the backend if the user is logged in
     if (token) {
       try {
         await axios.post(
           backendUrl + "/api/cart/add",
-          { itemId, size },
+          { itemId, size, quantity }, // Include `quantity` in the request payload
           { headers: { token } }
         );
-        if (!suppressToast) {
-          toast.success("Added 1 product to your Cart");
-        }
+        toast.success("Added to cart successfully.");
       } catch (error) {
-        console.log(error);
-        toast.error(error.message);
+        console.error("Error adding to cart:", error);
+        toast.error("Failed to update cart. Please try again later.");
       }
     }
-};
+  };
 
   const getCartCount = () => {
     let totalCount = 0;
@@ -137,54 +141,34 @@ const ShopContextProvider = (props) => {
 
   const addToWishlist = async (productId) => {
     try {
-      if (!token) {
-        toast.error("Please sign in to add to wishlist");
-        return;
-      }
-
-      // First get userId
-      const userResponse = await axios.post(
-        `${backendUrl}/api/user/getId`,
-        {},
-        { headers: { token } }
-      );
-      const userId = userResponse.data.userId;
-
-      // Add to wishlist
+      // Add product to wishlist
       const response = await axios.post(
         `${backendUrl}/api/wishlist/add`,
-        { 
-          productId: productId, // Make sure this matches your backend expectation
-          userId: userId  // Include userId in request body
-        },
-        { 
-          headers: { 
-            token: token,
-            'Content-Type': 'application/json'
-          } 
-        }
+        { productId }, // Pass productId directly
+        { headers: { token } }
       );
 
       if (response.data.success) {
-        // Update local state only after successful API call
-        setWishlistItems(prev => [...prev, productId]);
+        // Update local state on success
+        setWishlistItems((prev) => [...prev, productId]);
         toast.success("Added to wishlist successfully!");
+      } else {
+        toast.warning(
+          response.data.message || "Could not add item to wishlist"
+        );
       }
     } catch (error) {
+      // Log error for debugging
       console.error("Wishlist error details:", {
         message: error.message,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
       });
-      
-      if (error.response?.status === 400) {
-        toast.warning(error.response.data.message || "Item already in wishlist");
-      } else {
-        toast.error("Failed to add to wishlist. Please try again.");
-      }
+
+      // Handle specific error scenarios
+      toast.error("Failed to add to wishlist. Please try again.");
     }
-};
-    
+  };
 
   const removeFromWishlist = async (productId) => {
     try {
@@ -192,67 +176,105 @@ const ShopContextProvider = (props) => {
         toast.error("User not authenticated");
         return;
       }
-  
+
       // Get userId first
       const userResponse = await axios.post(
         `${backendUrl}/api/user/getId`,
         {},
         { headers: { token } }
       );
-      const userId = userResponse.data.userId;
-  
+
+      const userId = userResponse?.data?.userId;
+
+      if (!userId) {
+        toast.error("Failed to retrieve user information. Please try again.");
+        return;
+      }
+
+      // Send request to remove product from wishlist
       const response = await axios.post(
         `${backendUrl}/api/wishlist/remove`,
         { productId, userId },
-        { headers: { token } }
+        { headers: { token, "Content-Type": "application/json" } }
       );
-  
+
       if (response.data.success) {
+        // Update local state to reflect removal
         setWishlistItems((prev) => prev.filter((id) => id !== productId));
         toast.success("Removed from wishlist");
+      } else {
+        toast.warning(
+          response.data.message || "Failed to remove item from wishlist"
+        );
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error removing from wishlist:", error);
       toast.error("An error occurred while removing from wishlist");
+
+      // Detailed logging for debugging
+      if (error.response) {
+        console.error("Error response data:", error.response?.data);
+        console.error("Error status:", error.response?.status);
+      }
     }
   };
-  
+
   const getWishlist = async () => {
     try {
-      if (!token) return;
-  
+      if (!token) {
+        toast.error("User not authenticated");
+        return;
+      }
+
       // Get user ID
       const userResponse = await axios.post(
         `${backendUrl}/api/user/getId`,
         {},
         { headers: { token } }
       );
-      
-      const userId = userResponse.data.userId;
-      console.log("Got userId:", userId);
-  
-      // Make sure the URL is properly formatted
+
+      const userId = userResponse?.data?.userId;
+
+      if (!userId) {
+        toast.error("Failed to retrieve user information. Please try again.");
+        return;
+      }
+
+      //console.log("Got userId:", userId);
+
+      // Fetch wishlist data for the user
       const wishlistResponse = await axios.get(
         `${backendUrl}/api/wishlist/${userId}`,
         { headers: { token } }
       );
-  
-      console.log("Wishlist response:", wishlistResponse.data);
-  
+
+      //console.log("Wishlist response:", wishlistResponse.data);
+
+      // Check if the response is successful and handle accordingly
       if (wishlistResponse.data.success) {
         setWishlistItems(wishlistResponse.data.wishlist || []);
+      } else {
+        toast.warning("No wishlist found or failed to load wishlist");
+        setWishlistItems([]); // Set empty array if no wishlist is found
       }
     } catch (error) {
+      console.error("Error fetching wishlist:", error);
+
+      // Handle specific error cases
       if (error.response?.status === 404) {
-        // If wishlist not found, set empty array instead of showing error
+        // If the wishlist is not found, set empty array instead of showing error
+        toast.info("Wishlist is empty or not found");
         setWishlistItems([]);
+      } else if (error.response?.status === 401) {
+        // Handle unauthorized error
+        toast.error("Unauthorized access. Please sign in.");
       } else {
-        console.error("Error fetching wishlist:", error);
+        // Handle general errors
         toast.error("An error occurred while fetching the wishlist");
       }
     }
   };
-  
+
   // Add this helper function to get userId
   const getUserId = async () => {
     try {
@@ -284,7 +306,7 @@ const ShopContextProvider = (props) => {
   }, [token]); // This effect will run every time `token` is updated
 
   useEffect(() => {
-    console.log("Initial products fetch");
+    //console.log("Initial products fetch");
     getProductsData(); // Call the function to get the products
   }, []);
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { assets } from "../assets/assets";
 import axios from "axios";
 import { backendUrl } from "../App";
@@ -23,6 +23,7 @@ const Add = ({ token }) => {
   const [sizes, setSizes] = useState([]);
   const [stockLevel, setStockLevel] = useState({});
   const [loading, setLoading] = useState(false);
+  const [productAdded, setProductAdded] = useState(false); // Track if product is added
 
   // Handler for updating stock levels for different sizes
   const handleStockChange = (size, value) => {
@@ -123,6 +124,7 @@ const Add = ({ token }) => {
       // Handle successful product addition
       if (response.data.success) {
         toast.success(response.data.message);
+        setProductAdded(true); // Trigger page reload
 
         // Reset form fields after successful submission
         setName("");
@@ -152,6 +154,13 @@ const Add = ({ token }) => {
       setLoading(false);
     }
   };
+
+  // Effect hook to reload the page after product is added
+  useEffect(() => {
+    if (productAdded) {
+      window.location.reload(); // Reload the page to reflect the new product
+    }
+  }, [productAdded]); // Trigger effect when product is added
 
   return (
     <form

@@ -1,11 +1,15 @@
 import React, { useContext, useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import { Upload } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const ProductCustomize = () => {
+  const navigate = useNavigate();
   const { id } = useParams();
-  const { products, currency, addToCart } = useContext(ShopContext);
+  const { products, currency, addToCart, user } = useContext(ShopContext);
+  
+  // Product and UI states
   const [product, setProduct] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [uploadedImage, setUploadedImage] = useState(null);
@@ -13,32 +17,82 @@ const ProductCustomize = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   
+  // Refs for drag functionality
   const containerRef = useRef(null);
   const imageRef = useRef(null);
 
+  // Load product data
   useEffect(() => {
     if (products && products.length > 0) {
       const foundProduct = products.find(p => p._id === id);
       if (foundProduct) {
         setProduct(foundProduct);
+      } else {
+        toast.error("Product not found");
+        navigate('/customize');
       }
     }
-  }, [id, products]);
+  }, [id, products, navigate]);
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadedImage(e.target.result);
-        setPosition({ x: 0, y: 0 });
-        setScale(1);
-      };
-      reader.readAsDataURL(file);
+  // Handle add to cart action
+  const handleActionClick = async () => {
+    if (!user) {
+      toast.info("Please sign in to continue");
+      navigate('/login');
+      return;
+    }
+    
+    if (!selectedSize) {
+      toast.warning("Please select a size");
+      return;
+    }
+    
+    if (!uploadedImage) {
+      toast.warning("Please upload your design");
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      await addToCart(product._id, selectedSize);
+      toast.success("Added to cart successfully!");
+    } catch (error) {
+      console.error("Add to cart error:", error);
+      toast.error("Failed to add to cart. Please try again.");
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
+  // Handle image upload
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setUploadedImage(e.target.result);
+      setPosition({ x: 0, y: 0 });
+      setScale(1);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Mouse event handlers for drag functionality
   const handleMouseDown = (e) => {
     if (uploadedImage && containerRef.current) {
       e.preventDefault();
@@ -78,13 +132,16 @@ const ProductCustomize = () => {
     setIsDragging(false);
   };
 
+  // Add and remove event listeners for drag
   useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
   }, [isDragging]);
 
   if (!product) {
@@ -157,7 +214,9 @@ const ProductCustomize = () => {
               />
               <label htmlFor="designUpload" className="cursor-pointer">
                 <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                <span className="text-sm text-gray-500">Upload your design</span>
+                <span className="text-sm text-gray-500">
+                  {uploadedImage ? 'Change design' : 'Upload your design'}
+                </span>
               </label>
             </div>
           </div>
@@ -205,15 +264,13 @@ const ProductCustomize = () => {
 
           {/* Add to Cart Button */}
           <button
-            onClick={() => {
-              
-                addToCart(product._id, selectedSize);
-             
-              
-            }}
-            className="w-full py-3 bg-black text-white rounded hover:bg-gray-900"
+            onClick={handleActionClick}
+            disabled={isAddingToCart}
+            className="w-full py-3 bg-black text-white rounded hover:bg-gray-900 
+                     disabled:bg-gray-500 disabled:cursor-not-allowed"
           >
-            Add to Cart
+            {!user ? 'Sign In to Add to Cart' : 
+             isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}
           </button>
         </div>
       </div>

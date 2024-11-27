@@ -337,13 +337,11 @@ const Add = ({ token }) => {
       {/* Submit button */}
       <div className="text-center mt-4">
         <button
-          type="button"
+          type="submit"
           className="w-28 py-3 mt-4 bg-black text-white"
-          onClick={handleEditClick}
-          disabled={loading} // Disable button while loading
+          disabled={loading}
         >
-          {loading ? "Loading..." : isEditing ? "Save" : "Edit"}{" "}
-          {/* Show loading text */}
+          {loading ? "Loading..." : "Add Product"}
         </button>
       </div>
     </form>

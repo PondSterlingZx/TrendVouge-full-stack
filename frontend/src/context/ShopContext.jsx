@@ -17,45 +17,91 @@ const ShopContextProvider = (props) => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const navigate = useNavigate();
 
-  const addToCart = async (itemId, size, quantity) => {
+  const addToCart = async (itemId, size, quantity = 1, suppressToast = false) => {
     if (!size) {
-      toast.error("Select Product Size");
+      if (!suppressToast) toast.error("Select Product Size");
       return;
     }
-
+  
     if (quantity <= 0) {
-      toast.error("Invalid product quantity.");
+      if (!suppressToast) toast.error("Invalid product quantity");
       return;
     }
-
-    let cartData = structuredClone(cartItems);
-
-    // Update cart data locally
-    if (cartData[itemId]) {
-      if (cartData[itemId][size]) {
-        cartData[itemId][size] += quantity; // Add the quantity to the existing size quantity
-      } else {
-        cartData[itemId][size] = quantity; // Add the size with the given quantity
+  
+    try {
+      let cartData = structuredClone(cartItems);
+  
+      // Initialize nested structure if it doesn't exist
+      if (!cartData[itemId]) {
+        cartData[itemId] = {};
       }
-    } else {
-      cartData[itemId] = {};
-      cartData[itemId][size] = quantity; // Initialize size with the given quantity
-    }
-    setCartItems(cartData);
-
-    // Update cart on the backend if the user is logged in
-    if (token) {
-      try {
+  
+      // Add or update quantity
+      cartData[itemId][size] = (cartData[itemId][size] || 0) + quantity;
+  
+      // Update local state
+      setCartItems(cartData);
+  
+      // Update backend if user is logged in
+      if (token) {
         await axios.post(
-          backendUrl + "/api/cart/add",
-          { itemId, size, quantity }, // Include `quantity` in the request payload
+          `${backendUrl}/api/cart/add`,
+          { itemId, size, quantity },
           { headers: { token } }
         );
-        toast.success("Added to cart successfully.");
-      } catch (error) {
-        console.error("Error adding to cart:", error);
-        toast.error("Failed to update cart. Please try again later.");
+  
+        if (!suppressToast) {
+          toast.success("Added to cart successfully");
+        }
       }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      if (!suppressToast) {
+        toast.error("Failed to update cart");
+      }
+    }
+  };
+
+  
+  
+  // Add new function for batch adding items
+  const addMultipleToCart = async (items) => {
+    if (!token) {
+      toast.error("Please sign in to add items to cart");
+      return;
+    }
+  
+    try {
+      // Update local state first
+      let cartData = structuredClone(cartItems);
+      
+      items.forEach(({ itemId, size, quantity }) => {
+        if (!cartData[itemId]) {
+          cartData[itemId] = {};
+        }
+        if (cartData[itemId][size]) {
+          cartData[itemId][size] += quantity;
+        } else {
+          cartData[itemId][size] = quantity;
+        }
+      });
+  
+      setCartItems(cartData);
+  
+      // Batch update on backend
+      await axios.post(
+        backendUrl + "/api/cart/batch-add",
+        { items },
+        { headers: { token } }
+      );
+  
+      toast.success("All items added to cart successfully");
+    } catch (error) {
+      console.error("Error adding items to cart:", error);
+      toast.error("Failed to add some items to cart");
+      
+      // Refresh cart from server on error
+      getUserCart(token);
     }
   };
 
@@ -73,24 +119,64 @@ const ShopContextProvider = (props) => {
     return totalCount;
   };
 
-  const updateQuantity = async (itemId, size, quantity) => {
-    let cartData = structuredClone(cartItems);
-
-    cartData[itemId][size] = quantity;
-
-    setCartItems(cartData);
-
-    if (token) {
-      try {
+  const updateQuantity = async (itemId, size, newQuantity) => {
+    try {
+      let cartData = structuredClone(cartItems);
+  
+      if (newQuantity <= 0) {
+        // Remove the size entry if quantity is 0
+        if (cartData[itemId]) {
+          delete cartData[itemId][size];
+          // Remove the product entry if no sizes left
+          if (Object.keys(cartData[itemId]).length === 0) {
+            delete cartData[itemId];
+          }
+        }
+      } else {
+        // Update quantity
+        if (!cartData[itemId]) cartData[itemId] = {};
+        cartData[itemId][size] = newQuantity;
+      }
+  
+      setCartItems(cartData);
+  
+      if (token) {
         await axios.post(
-          backendUrl + "/api/cart/update",
-          { itemId, size, quantity },
+          `${backendUrl}/api/cart/update`,
+          { itemId, size, quantity: newQuantity },
           { headers: { token } }
         );
-      } catch (error) {
-        console.log(error);
-        toast.error(error.message);
       }
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      toast.error("Failed to update quantity");
+    }
+  };
+  
+  const removeFromCart = async (itemId, size) => {
+    try {
+      let cartData = structuredClone(cartItems);
+      
+      if (cartData[itemId]) {
+        delete cartData[itemId][size];
+        if (Object.keys(cartData[itemId]).length === 0) {
+          delete cartData[itemId];
+        }
+      }
+  
+      setCartItems(cartData);
+  
+      if (token) {
+        await axios.post(
+          `${backendUrl}/api/cart/remove`,
+          { itemId, size },
+          { headers: { token } }
+        );
+        toast.success("Item removed from cart");
+      }
+    } catch (error) {
+      console.error("Error removing item:", error);
+      toast.error("Failed to remove item");
     }
   };
 
@@ -320,6 +406,7 @@ const ShopContextProvider = (props) => {
     setShowSearch,
     cartItems,
     addToCart,
+    addMultipleToCart,
     setCartItems,
     getCartCount,
     updateQuantity,

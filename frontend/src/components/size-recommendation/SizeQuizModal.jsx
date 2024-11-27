@@ -388,7 +388,7 @@ const SizeQuizModal = ({ productData, onClose, onSizeSelected }) => {
             <h3 className="font-medium mb-4">Any specific fit preferences?</h3>
             <div className="space-y-2">
               {[
-                { id: "shoulders", label: "Shoulders" },
+                
                 { id: "chest", label: "Chest/Bust" },
                 { id: "waist", label: "Waist" },
                 { id: "hips", label: "Hips" }

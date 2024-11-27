@@ -12,7 +12,6 @@ import reviewRouter from "./routes/reviewRoute.js";
 import wishlistRouter from './routes/wishlistRoute.js'
 import notifyRouter from './routes/notifyRoute.js';
 import profileRouter from './routes/profileRoute.js';
-import uploadRoutes from './routes/uploadRoutes.js';
 
 // App Config
 const app = express()
@@ -34,7 +33,6 @@ app.use("/api/review", reviewRouter);
 app.use('/api/wishlist', wishlistRouter);
 app.use('/api/notify', notifyRouter);
 app.use('/api/profile', profileRouter);
-app.use(uploadRoutes);
 
 app.get('/', (req, res) => {
     res.send("API Working")

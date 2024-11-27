@@ -43,6 +43,7 @@ const App = () => {
         <Route path="/customize" element={<Customize />} />
         <Route path="/product-customize/:id" element={<ProductCustomize />} />
         <Route path="/profile" element={<Profile />} />
+        
       </Routes>
       <Footer />
     </div>

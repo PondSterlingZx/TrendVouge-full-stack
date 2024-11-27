@@ -33,7 +33,6 @@ const Profile = () => {
     email: "",
     firstName: "",
     lastName: "",
-    email: "",
     phone: "",
     address: {
       street: "",

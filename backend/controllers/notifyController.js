@@ -6,8 +6,8 @@ import notifyModel from '../models/notifyModel.js';
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: "trendvouge6@gmail.com",
-    pass: "nanbwgqmxdcqklsi",
+    user: "trendvouge.contact@gmail.com",
+    pass: "izcbcmthjpwbglpx",
   }
 });
 

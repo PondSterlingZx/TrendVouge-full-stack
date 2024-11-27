@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
         postalCode: { type: String, default: "" },
         country: { type: String, default: "" },
     },
+    profileURL: { type: String, default: "" },
     profilePicture: { type: String, default: "" },
     bio: { type: String, default: "" },
     dateOfBirth: { type: Date, default: null },

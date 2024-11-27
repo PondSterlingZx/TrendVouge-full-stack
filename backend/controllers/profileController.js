@@ -30,61 +30,35 @@ const getUserProfile = async (req, res) => {
 // Update user profile details
 const updateUserProfile = async (req, res) => {
     try {
-        const userId = req.body.userId;
-        const { username, email, firstName, middleName, lastName, phone, address, bio, profilePicture, gender, dateOfBirth } = req.body;
-
-        if (!userId) {
-            return res.status(400).json({ success: false, message: 'User ID not provided' });
-        }
-
-        let profileURL = null;
-
-        // Fetch the existing user
-        const prevUser = await userModel.findById(userId);
-        if (!prevUser) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        if (profilePicture) {
-            try {
-                // Delete old image (optional)
-                if (prevUser.profileURL) {
-                    const publicId = prevUser.profileURL.split('/').pop().split('.')[0];
-                    await cloudinary.uploader.destroy(publicId); // Deletes previous image
-                }
-
-                // Upload new image
-                const uploadResult = await cloudinary.uploader.upload(profilePicture, { resource_type: 'image' });
-                profileURL = uploadResult.secure_url;
-            } catch (error) {
-                return res.status(500).json({ success: false, message: 'Error uploading profile picture' });
-            }
-        }
-
+      const userId = req.body.userId;
+      
+      // Handle form data for image upload
+      if (req.file) {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "profile_pictures"
+        });
+        
         const updatedUser = await userModel.findByIdAndUpdate(
-            userId,
-            {
-                username,
-                email,
-                firstName,
-                middleName,
-                lastName,
-                phone,
-                address,
-                bio,
-                profileURL: profileURL || prevUser.profileURL, // Use new URL or keep existing
-                gender,
-                dateOfBirth,
-            },
-            { new: true }
+          userId,
+          { profileURL: result.secure_url },
+          { new: true }
         );
-
-        res.status(200).json({ success: true, user: updatedUser });
+        
+        return res.json({ success: true, user: updatedUser });
+      }
+  
+      // Handle regular profile updates
+      const updatedUser = await userModel.findByIdAndUpdate(
+        userId,
+        req.body,
+        { new: true }
+      );
+  
+      res.json({ success: true, user: updatedUser });
     } catch (error) {
-        console.error('Error updating user profile:', error);
-        res.status(500).json({ success: false, message: 'Server error while updating profile' });
+      res.status(500).json({ success: false, message: error.message });
     }
-};
+  };
 
 
 // Update user password

@@ -408,6 +408,9 @@ const Product = () => {
                     className="text-blue-600 text-sm hover:underline flex items-center gap-1"
                   >
                     <span>Not sure? Find your size</span>
+                    <span className="text-[10px] text-white bg-black rounded px-1 ml-1">
+              trial
+            </span>
                   </button>
                 )}
               </div>

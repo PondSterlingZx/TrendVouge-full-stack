@@ -112,57 +112,37 @@ const Matching = () => {
       toast.warning("Please sign in to add items to cart");
       return;
     }
-  
-    // Filter only selected items with sizes
-    const selectedOutfits = Object.entries(outfitPreview)
-      .filter(([_, data]) => data.item && data.size);
-  
-    if (selectedOutfits.length === 0) {
-      toast.warning("Please select at least one item");
-      return;
-    }
-  
-    const missingSize = selectedOutfits.find(([type, data]) => !data.size);
+
+    const missingSize = Object.entries(outfitPreview)
+      .filter(([_, data]) => data.item)
+      .find(([_, data]) => !data.size);
+
     if (missingSize) {
       toast.warning(`Please select a size for ${missingSize[0]}`);
       return;
     }
-  
+
     try {
       setIsAddingToCart(true);
       
-      // Use Promise.all to add items concurrently
-      await Promise.all(
-        selectedOutfits.map(async ([_, data]) => {
-          await addToCart(data.item._id, data.size, 1, true); // quantity = 1, suppressToast = true
-        })
-      );
-  
-      // Show single success message
-      toast.success(`Added ${selectedOutfits.length} ${selectedOutfits.length === 1 ? 'item' : 'items'} to cart!`);
+      // Add items one by one with suppressed toasts
+      for (const [_, data] of Object.entries(outfitPreview)) {
+        if (data.item && data.size) {
+          await addToCart(data.item._id, data.size, true); // Suppress individual toasts
+        }
+      }
+    
+      // Show single success message for the outfit
+      // toast.success("Complete outfit added to cart!");
       
-      // Reset all states
-      resetStates();
-  
+      // Reset states...
     } catch (error) {
-      console.error("Failed to add items to cart:", error);
-      toast.error("Failed to add items to cart. Please try again.");
+      toast.error("Failed to add outfit to cart");
+      console.error(error);
     } finally {
       setIsAddingToCart(false);
     }
-  };
-  
-  // Separate function to handle state reset
-  const resetStates = () => {
-    setSelectedItems([]);
-    setOutfitPreview({
-      Topwear: { item: null, size: '' },
-      Bottomwear: { item: null, size: '' },
-      Winterwear: { item: null, size: '' }
-    });
-    setPositions({});
-    setItemSizes({});
-  };
+};
 
   // Your existing filter functions and effects...
   const toggleCategory = (e) => {

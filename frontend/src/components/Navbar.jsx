@@ -49,7 +49,11 @@ const Navbar = () => {
           </NavLink>
           <NavLink to="/customize" className="hover:text-gray-900">
             CUSTOMIZE
+            <span className="text-[10px] text-white bg-black rounded px-1 ml-1">
+              trial
+            </span>
           </NavLink>
+
           <NavLink to="/matching" className="hover:text-gray-900">
             MIX & MATCH
           </NavLink>
@@ -85,7 +89,7 @@ const Navbar = () => {
               src={assets.profile_icon}
               alt="Profile"
             />
-            {/* Profile Dropdown */}
+
             {/* Profile Dropdown */}
             {token && isDropdownOpen && (
               <div className="absolute right-0 top-8 bg-white shadow-md rounded p-4 w-39">
@@ -171,11 +175,15 @@ const Navbar = () => {
           </NavLink>
           <NavLink
             onClick={() => setVisible(false)}
-            className="py-2 px-4 hover:bg-gray-100"
+            className="py-2 px-4 hover:bg-gray-100 relative"
             to="/customize"
           >
             CUSTOMIZE
+            <span className="text-[10px] text-white bg-black rounded px-1 ml-1">
+              trial
+            </span>
           </NavLink>
+
           <NavLink
             onClick={() => setVisible(false)}
             className="py-2 px-4 hover:bg-gray-100"

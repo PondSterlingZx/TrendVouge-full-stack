@@ -1,5 +1,5 @@
 import express from 'express';
-import { sendNotifyEmails, addNotify } from '../controllers/notifyController.js';
+import { sendNotifyEmails, addNotify, removeNotify } from '../controllers/notifyController.js';
 import authUser from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 
@@ -7,6 +7,9 @@ const notifyRouter = express.Router();
 
 // Route to add a new notification
 notifyRouter.post('/add', authUser, addNotify);
+
+// Route to remove an email from a product's notification list
+notifyRouter.delete('/remove', authUser, removeNotify);
 
 // Route to send notification emails (restricted to admins)
 notifyRouter.post('/send-emails', adminAuth, async (req, res) => {

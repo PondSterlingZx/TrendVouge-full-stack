@@ -63,7 +63,7 @@ const Product = () => {
         toast.error("Please enter a valid email address.");
         return;
       }
-      console.log("Email sent:", finalEmail);
+      //console.log("Email sent:", finalEmail);
 
       // Send request to backend to add notification
       const response = await axios.post(
@@ -73,7 +73,7 @@ const Product = () => {
       );
 
       // Log the response for debugging
-      console.log("Response from backend:", response);
+      //console.log("Response from backend:", response);
 
       // Handle response from backend
       if (response.data.success) {
@@ -309,6 +309,9 @@ const Product = () => {
         { productId },
         { headers: { token } }
       );
+
+      // Log the complete response data to check what is being returned
+      //console.log("Review data from backend:", response.data);
 
       if (response.data.success) {
         const reviews = response.data.reviews || []; // Default to an empty array if no reviews
@@ -647,7 +650,7 @@ const Product = () => {
                           {"★".repeat(review.rating)}
                         </span>
                         <p className="pl-2">
-                          {review.user?.name || "Anonymous"}
+                          {review.user?.username || "Anonymous"}
                           <span className="text-gray-500 text-sm">
                             (
                             {review.create

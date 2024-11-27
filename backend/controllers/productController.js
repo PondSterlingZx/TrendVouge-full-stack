@@ -2,7 +2,6 @@ import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/productModel.js"
 import reviewModel from "../models/reviewModel.js"
 import userModel from "../models/userModel.js"
-import notifyModel from '../models/notifyModel.js';
 import { sendNotifyEmails } from '../controllers/notifyController.js'; // Import the notify function
 
 // function for add product
@@ -55,7 +54,7 @@ const addProduct = async (req, res) => {
             date: Date.now()
         }
 
-        console.log(productData);
+        //console.log(productData);
 
         const product = new productModel(productData);
         await product.save()

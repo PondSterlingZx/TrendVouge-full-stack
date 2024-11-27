@@ -23,7 +23,6 @@ const Add = ({ token }) => {
   const [sizes, setSizes] = useState([]);
   const [stockLevel, setStockLevel] = useState({});
   const [loading, setLoading] = useState(false);
-  const [productAdded, setProductAdded] = useState(false); // Track if product is added
 
   // Handler for updating stock levels for different sizes
   const handleStockChange = (size, value) => {
@@ -124,7 +123,6 @@ const Add = ({ token }) => {
       // Handle successful product addition
       if (response.data.success) {
         toast.success(response.data.message);
-        setProductAdded(true); // Trigger page reload
 
         // Reset form fields after successful submission
         setName("");
@@ -138,8 +136,6 @@ const Add = ({ token }) => {
         setStockLevel({});
 
         // Optionally reset any other form data (like category, bestseller, etc.)
-        setCategory("");
-        setSubCategory("");
         setBestseller(false);
         setCustomize(false);
       } else {
@@ -154,13 +150,6 @@ const Add = ({ token }) => {
       setLoading(false);
     }
   };
-
-  // Effect hook to reload the page after product is added
-  useEffect(() => {
-    if (productAdded) {
-      window.location.reload(); // Reload the page to reflect the new product
-    }
-  }, [productAdded]); // Trigger effect when product is added
 
   return (
     <form
@@ -346,14 +335,17 @@ const Add = ({ token }) => {
       </div>
 
       {/* Submit button */}
-      <button
-        type="submit"
-        className="w-28 py-3 mt-4 bg-black text-white"
-        disabled={loading} // Disable button while loading
-      >
-        {loading ? "Loading..." : "ADD"}{" "}
-        {/* Show Loading text when submitting */}
-      </button>
+      <div className="text-center mt-4">
+        <button
+          type="button"
+          className="w-28 py-3 mt-4 bg-black text-white"
+          onClick={handleEditClick}
+          disabled={loading} // Disable button while loading
+        >
+          {loading ? "Loading..." : isEditing ? "Save" : "Edit"}{" "}
+          {/* Show loading text */}
+        </button>
+      </div>
     </form>
   );
 };

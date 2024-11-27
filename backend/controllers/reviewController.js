@@ -48,7 +48,7 @@ const getReviewsByProduct = async (req, res) => {
                     foreignField: "_id", // Field in the users collection
                     as: "user", // Alias for the joined user data
                     pipeline: [
-                        { $project: { name: 1, _id: 1 } } // Include both name and _id of the user
+                        { $project: { username: 1, _id: 1 } } // Include both name and _id of the user
                     ],
                 },
             },
@@ -60,7 +60,7 @@ const getReviewsByProduct = async (req, res) => {
                     rating: 1, // Include rating
                     comment: 1, // Include comment
                     create: 1, // Include create
-                    "user.name": 1, // Include only the user's name
+                    "user.username": 1, // Include only the user's name
                     "user._id": { $toString: "$user._id" }, // Convert ObjectId to string for _id
                 },
             },

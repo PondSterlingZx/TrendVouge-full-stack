@@ -10,8 +10,8 @@ import orderRouter from './routes/orderRoute.js'
 import sizeRecommendationRouter from './routes/sizeRecommendationRoute.js';
 import reviewRouter from "./routes/reviewRoute.js";
 import wishlistRouter from './routes/wishlistRoute.js'
-import notificationRouter from './routes/notificationRoute.js';
 import notifyRouter from './routes/notifyRoute.js';
+import profileRouter from './routes/profileRoute.js';
 
 // App Config
 const app = express()
@@ -31,8 +31,8 @@ app.use('/api/order', orderRouter)
 app.use('/api/size-recommendation', sizeRecommendationRouter)
 app.use("/api/review", reviewRouter);
 app.use('/api/wishlist', wishlistRouter);
-app.use('/api/notification', notificationRouter);
 app.use('/api/notify', notifyRouter);
+app.use('/api/profile', profileRouter);
 
 app.get('/', (req, res) => {
     res.send("API Working")

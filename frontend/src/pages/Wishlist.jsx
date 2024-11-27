@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
+import Title from "../components/Title";
 
 const WishlistPage = () => {
   const { wishlistItems, removeFromWishlist, products, currency, addToCart } =
@@ -24,11 +25,14 @@ const WishlistPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">My Wishlist</h1>
+      <div className="flex justify-between text-base sm:text-2xl mb-4">
+        <Title text1={"MY"} text2={"WISHLIST"} />
+      </div>
+
       {wishlistProducts.length === 0 ? (
         <p>Your wishlist is empty.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {wishlistProducts.map((product) => (
             <div
               key={product._id}

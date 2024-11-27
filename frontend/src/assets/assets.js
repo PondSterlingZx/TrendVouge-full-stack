@@ -76,6 +76,9 @@ import cross_icon from './cross_icon.png'
 import wish_list from './wish_list.png'
 import more_horizon from './more_horizon.png'
 // import more_vertical from './more_vertical.png'
+import left_arrow from './left_arrow.png'
+import right_arrow from './right_arrow.png'
+import cat_profile from './cat_profile.jpg'
 
 export const assets = {
     logo,
@@ -97,8 +100,11 @@ export const assets = {
     stripe_logo,
     cross_icon,
     wish_list,
-    more_horizon
-    // more_vertical
+    more_horizon,
+    //more_vertical,
+    left_arrow,
+    right_arrow,
+    cat_profile
 }
 
 export const products = [

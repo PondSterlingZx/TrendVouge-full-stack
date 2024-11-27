@@ -15,6 +15,7 @@ const Matching = () => {
   const [subCategory, setSubCategory] = useState([])
   const [sortType, setSortType] = useState('relevant')
   const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [quantity, setQuantity] = useState(1);
   
   // Matching specific states
   const [selectedItems, setSelectedItems] = useState([])
@@ -28,9 +29,7 @@ const Matching = () => {
   const [positions, setPositions] = useState({})
   const [itemSizes, setItemSizes] = useState({})
 
-  const maleImage = "https://i.postimg.cc/FH50v1Nv/male-default.png"
-  const femaleImage = "https://i.postimg.cc/wTsDnDKF/female-default.png"
-  const childImage = "https://i.postimg.cc/RZcW9RZC/children-default.png"
+ 
 
   const handleDrag = (itemId, data) => {
     setPositions(prev => ({
@@ -112,37 +111,43 @@ const Matching = () => {
       toast.warning("Please sign in to add items to cart");
       return;
     }
-
+  
     const missingSize = Object.entries(outfitPreview)
       .filter(([_, data]) => data.item)
       .find(([_, data]) => !data.size);
-
+  
     if (missingSize) {
       toast.warning(`Please select a size for ${missingSize[0]}`);
       return;
     }
-
+  
     try {
       setIsAddingToCart(true);
       
-      // Add items one by one with suppressed toasts
       for (const [_, data] of Object.entries(outfitPreview)) {
         if (data.item && data.size) {
-          await addToCart(data.item._id, data.size, true); // Suppress individual toasts
+          await addToCart(data.item._id, data.size, 1); // Set suppressToast to false
         }
       }
-    
-      // Show single success message for the outfit
-      // toast.success("Complete outfit added to cart!");
+  
+      toast.success("Added to cart successfully!");
+  
+      // Reset states
+      setSelectedItems([]);
+      setOutfitPreview({
+        Topwear: { item: null, size: '' },
+        Bottomwear: { item: null, size: '' },
+        Winterwear: { item: null, size: '' }
+      });
+      setPositions({});
+      setItemSizes({});
       
-      // Reset states...
     } catch (error) {
       toast.error("Failed to add outfit to cart");
-      console.error(error);
     } finally {
       setIsAddingToCart(false);
     }
-};
+  };
 
   // Your existing filter functions and effects...
   const toggleCategory = (e) => {
@@ -322,7 +327,9 @@ const Matching = () => {
                           >
                             {size}
                           </button>
+                          
                         ))}
+                        
                       </div>
                     </div>
                   )}

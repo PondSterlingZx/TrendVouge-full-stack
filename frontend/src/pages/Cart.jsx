@@ -34,41 +34,6 @@ const Cart = () => {
     }
   }, [cartItems, products]); // Dependency on cartItems and products
 
-  const [stockError, setStockError] = useState(false);
-
-  const validateStock = () => {
-    let isValid = true;
-    let errors = [];
-   
-    cartData.forEach(item => {
-      const product = products.find(p => p._id === item._id);
-      const availableStock = product.stockLevel[item.size];
-      
-      if (item.quantity > availableStock) {
-        isValid = false;
-        errors.push({
-          name: product.name,
-          size: item.size,
-          requested: item.quantity,
-          available: availableStock
-        });
-      }
-    });
-   
-    if (!isValid) {
-      setStockError(true);
-      errors.forEach(error => {
-        toast.error(
-          `${error.name} (Size ${error.size}): Requested ${error.requested}, only ${error.available} available`
-        );
-      });
-    }
-   
-    return isValid;
-   };
-
-
-
   return (
     <div className="border-t pt-14">
       {/* Cart Title */}
@@ -160,30 +125,30 @@ const Cart = () => {
             })}
           </div>
 
-          {/* Checkout Section */}
           <div className="flex justify-end my-20">
             <div className="w-full sm:w-[450px]">
               {/* Cart Total */}
               <CartTotal />
               <div className="w-full text-end">
                 {/* Button to navigate to checkout */}
-              
-                  <button
-                    onClick={() => {
-                      if (validateStock()) {
-                        navigate("/place-order");
-                      }
-                    }}
-                    className="bg-black text-white text-sm my-8 px-8 py-3 hover:bg-gray-800 transition-colors"
-                  >
-                    PROCEED TO CHECKOUT
-                  </button>
+                <button
+                  onClick={() => {
+                    // Check if any item's quantity exceeds available stock
+                    const exceedsStock = cartData.some(item => {
+                      const productData = products.find(product => product._id === item._id);
+                      return item.quantity > productData.stockLevel[item.size];
+                    });
 
-                  {stockError && (
-                    <p className="text-red-500 text-sm mt-2">
-                      Some items exceed available stock. Please adjust quantities.
-                    </p>
-                  )}
+                    if (exceedsStock) {
+                      toast.warning("Some items exceed available stock. Please adjust quantities.");
+                    } else {
+                      navigate("/place-order");
+                    }
+                  }}
+                  className="bg-black text-white text-sm my-8 px-8 py-3 hover:bg-gray-800 transition-colors"
+                >
+                  PROCEED TO CHECKOUT
+                </button>
               </div>
             </div>
           </div>

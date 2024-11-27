@@ -156,13 +156,7 @@ const Profile = () => {
                   "linear-gradient(to bottom right, #184e68, #5e2563)",
               }}
             >
-              <div className="w-20 h-20 sm:w-20 sm:h-20  bg-white/80 rounded-full shadow-md mb-8 flex items-center justify-center">
-                <img
-                  src={userData?.profilePicture || assets.cat_profile}
-                  alt="Profile"
-                  className="object-cover w-full h-full rounded-full"
-                />
-              </div>
+              
 
               <div className="text-center text-sm mb-4 flex flex-col items-center">
                 <p className="text-left w-full">First Name</p>
@@ -362,31 +356,13 @@ const Profile = () => {
             >
               <div className="w-20 h-20 sm:w-20 sm:h-20 bg-white/80 rounded-full shadow-md mb-8 flex items-center justify-center">
                 {/* Clickable image that triggers file input */}
-                {isEditing ? (
-                  <>
-                    <input
-                      type="file"
-                      id="profilePictureInput"
-                      onChange={handleProfilePictureChange}
-                      className="hidden"
-                      accept="image/*"
-                    />
-                    <img
-                      src={userData?.profilePicture || assets.cat_profile}
-                      alt="Profile"
-                      className="object-cover w-full h-full rounded-full"
-                      onClick={() =>
-                        document.getElementById("profilePictureInput").click()
-                      }
-                    />
-                  </>
-                ) : (
+                
                   <img
                     src={userData?.profilePicture || assets.cat_profile}
                     alt="Profile"
                     className="object-cover w-full h-full rounded-full"
                   />
-                )}
+                
               </div>
 
               <div className="text-center text-sm mb-4 flex flex-col items-center">
